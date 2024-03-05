@@ -1,0 +1,6 @@
+@pixAPI_HostAddress = http://localhost:5180
+
+GET {{pixAPI_HostAddress}}/Health/
+Accept: application/json
+
+###
