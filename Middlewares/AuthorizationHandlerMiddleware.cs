@@ -28,7 +28,7 @@ public class AuthorizationHandlerMiddleware(RequestDelegate next)
       {
         throw new UnauthorizedException("Token inválido ou inexistente.");
       }
-      context.Items["token"] = token;
+      context.Items["bankData"] = paymentProvider;
     }
     await _next(context);
   }

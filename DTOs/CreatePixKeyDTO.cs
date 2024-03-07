@@ -4,11 +4,9 @@ using System.Runtime.Serialization;
 namespace pixAPI.DTOs;
 
 [DataContract]
-public class Key
+public class KeyCreatePixKeySchema
 {
   [Required(ErrorMessage = "{0} é obrigatório.")]
-  [RegularExpression(@"^\d+(\.\d{1,2})?$", ErrorMessage = "{0} precisa ser um número válido.")]
-  [Range(0, 9999999999999999.99, ErrorMessage = "{0} precisa ser um valor positivo.")]
   [DataMember(Name = "value")]
   public string Value { get; set; } = null!;
 
@@ -19,16 +17,17 @@ public class Key
 }
 
 [DataContract]
-public class User
+public class UserCreatePixKeySchema
 {
   [Required(ErrorMessage = "{0} é obrigatório.")]
+  [RegularExpression(@"^\d+$", ErrorMessage = "{0} precisa ser um CPF válido")]
   [StringLength(11, MinimumLength = 11, ErrorMessage = "{0} precisa ter 11 dígitos.")]
   [DataMember(Name = "cpf")]
   public string CPF { get; set; } = null!;
 }
 
 [DataContract]
-public class Account
+public class AccountCreatePixKeySchema
 {
   [Required(ErrorMessage = "{0} é obrigatório.")]
   [StringLength(8, MinimumLength = 4, ErrorMessage = "{0} precisa estar entre 4 e 8 caracteres.")]
@@ -46,13 +45,13 @@ public class CreatePixKeyDTO
 {
   [Required(ErrorMessage = "{0} é obrigatório.")]
   [DataMember(Name = "key")]
-  public Key Key { get; set; } = null!;
+  public KeyCreatePixKeySchema Key { get; set; } = null!;
 
   [Required(ErrorMessage = "{0} é obrigatório.")]
   [DataMember(Name = "user")]
-  public User User { get; set; } = null!;
+  public UserCreatePixKeySchema User { get; set; } = null!;
 
   [Required(ErrorMessage = "{0} é obrigatório.")]
   [DataMember(Name = "account")]
-  public Account Account { get; set; } = null!;
+  public AccountCreatePixKeySchema Account { get; set; } = null!;
 }
