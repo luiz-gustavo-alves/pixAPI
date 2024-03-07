@@ -22,6 +22,5 @@ public class PaymentProvider
   [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
   [DefaultValue("getutcdate()")]
   public DateTime UpdatedAt { get; set; }
-
   public ICollection<PaymentProviderAccount> PaymentProviderAccounts { get; set; } = null!;
 }

@@ -10,11 +10,11 @@ public class PaymentProviderAccount
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   public long Id { get; set; }
 
-  [ForeignKey("UserId")]
-  public User? UserId { get; set; }
+  [ForeignKey(nameof(User))]
+  public long UserId { get; set; }
 
-  [ForeignKey("BankId")]
-  public PaymentProvider? BankId { get; set; }
+  [ForeignKey(nameof(Bank))]
+  public long BankId { get; set; }
 
   public string Agency { get; set; } = null!;
   public string Number { get; set; } = null!;
@@ -28,5 +28,6 @@ public class PaymentProviderAccount
   public DateTime UpdatedAt { get; set; }
 
   public User User { get; set; } = null!;
-  public PaymentProvider PaymentProvider { get; set; } = null!;
+  public PaymentProvider Bank { get; set; } = null!;
+  public ICollection<PixKey> PixKeys { get; set; } = null!;
 }
