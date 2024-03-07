@@ -1,4 +1,5 @@
 using System.Net;
+using pixAPI.Exceptions;
 
 namespace pixAPI.Middlewares;
 
@@ -21,7 +22,9 @@ public class ExceptionHandlerMiddleware(RequestDelegate next)
   private static void HandleException(HttpContext context, Exception e) {
     ExceptionResponse response = e switch 
     {
-      _ => new ExceptionResponse(HttpStatusCode.InternalServerError, "Erro Interno do Servidor")
+      UnauthorizedException _ => new ExceptionResponse(HttpStatusCode.Unauthorized, e.Message),
+      InvalidKeyTypeException _ => new ExceptionResponse(HttpStatusCode.BadRequest, e.Message),
+      _ => new ExceptionResponse(HttpStatusCode.InternalServerError, "Erro Interno do Servidor. Tente novamente mais tarde.")
     };
 
     context.Response.ContentType = "application/json";
