@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using pixAPI.Services;
+using pixAPI.Repositories;
 using pixAPI.Middlewares;
 using pixAPI.Data;
 
@@ -13,6 +14,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<HealthService>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<PaymentProviderRepository>();
+builder.Services.AddScoped<PaymentProviderAccountRepository>();
+builder.Services.AddScoped<PixKeyRepository>();
 
 // Database
 builder.Services.AddDbContext<AppDBContext>(opts =>
@@ -38,11 +43,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Middlewares
+app.UseMiddleware<ExceptionHandlerMiddleware>();
+app.UseMiddleware<AuthorizationHandlerMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Middlewares
-app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.Run();
