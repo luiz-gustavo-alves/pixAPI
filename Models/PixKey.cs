@@ -13,7 +13,7 @@ public class PixKey : BaseEntity
   public long PaymentProviderAccountId { get; set; }
 
   public required KeyType Type { get; set; }
-  public required float Value { get; set; }
+  public required string Value { get; set; }
 
   public PaymentProviderAccount PaymentProviderAccount { get; set; } = null!;
 }
