@@ -1,10 +1,9 @@
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace pixAPI.Models;
 
-public class PixKey
+public class PixKey : BaseEntity
 {
   [Key]
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -15,14 +14,6 @@ public class PixKey
 
   public required KeyType Type { get; set; }
   public required float Value { get; set; }
-
-  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-  [DefaultValue("getutcdate()")]
-  public DateTime CreatedAt { get; set; }
-
-  [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-  [DefaultValue("getutcdate()")]
-  public DateTime UpdatedAt { get; set; }
 
   public PaymentProviderAccount PaymentProviderAccount { get; set; } = null!;
 }

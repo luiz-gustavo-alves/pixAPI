@@ -16,8 +16,37 @@ public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(op
     builder.Entity<PaymentProvider>().HasKey(paymentProvider => paymentProvider.Id);
     builder.Entity<PaymentProviderAccount>().HasKey(paymentProviderAccount => paymentProviderAccount.Id);
     builder.Entity<PixKey>().HasKey(pixKey => pixKey.Id);
+
     builder.Entity<User>().HasIndex(user => user.CPF).IsUnique();
     builder.Entity<PaymentProvider>().HasIndex(paymentProvider => paymentProvider.Token).IsUnique();
     builder.Entity<PaymentProvider>().HasIndex(paymentProvider => paymentProvider.BankName).IsUnique();
+
+    builder.Entity<User>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
+    builder.Entity<User>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PaymentProvider>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PaymentProvider>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PaymentProviderAccount>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PaymentProviderAccount>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PixKey>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
+    builder.Entity<PixKey>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
+  }
+
+  public override int SaveChanges()
+  {
+    var entries = ChangeTracker
+        .Entries()
+        .Where(e => e.Entity is BaseEntity && (
+                e.State == EntityState.Added
+                || e.State == EntityState.Modified));
+
+    foreach (var entityEntry in entries)
+    {
+      ((BaseEntity)entityEntry.Entity).UpdatedAt = DateTime.Now;
+      if (entityEntry.State == EntityState.Added)
+      {
+        ((BaseEntity)entityEntry.Entity).CreatedAt = DateTime.Now;
+      }
+    }
+    return base.SaveChanges();
   }
 }

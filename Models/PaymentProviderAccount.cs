@@ -1,10 +1,9 @@
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace pixAPI.Models;
 
-public class PaymentProviderAccount
+public class PaymentProviderAccount : BaseEntity
 {
   [Key]
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -18,14 +17,6 @@ public class PaymentProviderAccount
 
   public string Agency { get; set; } = null!;
   public string Number { get; set; } = null!;
-
-  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-  [DefaultValue("getutcdate()")]
-  public DateTime CreatedAt { get; set; }
-
-  [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-  [DefaultValue("getutcdate()")]
-  public DateTime UpdatedAt { get; set; }
 
   public User User { get; set; } = null!;
   public PaymentProvider Bank { get; set; } = null!;
