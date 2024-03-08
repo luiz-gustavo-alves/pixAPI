@@ -8,12 +8,19 @@ public class PixKeyRepository(AppDBContext context)
 {
   private readonly AppDBContext _context = context;
 
+  public async Task<PixKey> CreateAsync(PixKey pixKey)
+  {
+    _context.PixKey.Add(pixKey);
+    await _context.SaveChangesAsync();
+    return pixKey;
+  }
+
   public async Task<List<PixKey>> GetAllPixKeysByUserBankAccountId(long paymentProviderAccountId)
   {
     return await _context.PixKey.Where(p => p.PaymentProviderAccountId.Equals(paymentProviderAccountId)).ToListAsync();
   }
 
-  public async Task<PixKey?> GetPixKeyByTypeAndValue(KeyType type, float value) 
+  public async Task<PixKey?> GetPixKeyByTypeAndValue(KeyType type, float value)
   {
     return await _context.PixKey.FirstOrDefaultAsync(p => p.Type.Equals(type) && p.Value.Equals(value));
   }

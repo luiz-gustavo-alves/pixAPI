@@ -8,6 +8,13 @@ public class PaymentProviderAccountRepository(AppDBContext context)
 {
   private readonly AppDBContext _context = context;
 
+  public async Task<PaymentProviderAccount> CreateAsync(PaymentProviderAccount account) 
+  {
+    _context.PaymentProviderAccount.Add(account);
+    await _context.SaveChangesAsync();
+    return account;
+  }
+
   public async Task<List<PaymentProviderAccount>> GetAllAccountsByUserId(long userId)
   {
     return await _context.PaymentProviderAccount.Where(a => a.UserId.Equals(userId)).ToListAsync();
@@ -17,9 +24,4 @@ public class PaymentProviderAccountRepository(AppDBContext context)
   {
     return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId)).ToListAsync();
   }
-
-    public static implicit operator PaymentProviderAccountRepository(PaymentProviderRepository v)
-    {
-        throw new NotImplementedException();
-    }
 }

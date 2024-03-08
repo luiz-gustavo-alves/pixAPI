@@ -15,18 +15,16 @@ public class PixKeyController(PixKeyService pixKeyService) : ControllerBase
   private readonly PixKeyService _pixKeyService = pixKeyService;
 
   [HttpPost]
-  public async Task<IActionResult> CreatePixKeyAsync(CreatePixKeyDTO dto)
+  public async Task<IActionResult> CreatePixKey(CreatePixKeyDTO dto)
   {
-    Console.Write(dto);
     PaymentProvider bankData = (PaymentProvider?)HttpContext.Items["bankData"] ?? throw new UnauthorizedException("Acesso indevido.");
     await _pixKeyService.CreatePixKey(bankData, dto);
-    return Created();
+    return CreatedAtAction("CreatePixKey", dto);
   }
 
   [HttpGet("{type}/{value}")]
-  public IActionResult GetHealth(string type, string value)
+  public IActionResult GetPixKey(string type, string value)
   {
-    KeyType matchValue = EnumHelper.MatchStringToKeyType(type);
     return Ok();
   }
 }
