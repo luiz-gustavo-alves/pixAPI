@@ -17,9 +17,9 @@ public class PixKeyController(PixKeyService pixKeyService) : ControllerBase
   [HttpPost]
   public async Task<IActionResult> CreatePixKey(CreatePixKeyDTO dto)
   {
-    PaymentProvider bankData = (PaymentProvider?)HttpContext.Items["bankData"] ?? throw new UnauthorizedException("Acesso indevido.");
-    await _pixKeyService.CreatePixKey(bankData, dto);
-    return CreatedAtAction("CreatePixKey", dto);
+    PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
+    var createdPixKey = await _pixKeyService.CreatePixKey(bankData, dto);
+    return CreatedAtAction(nameof(CreatePixKey), null, new { id = createdPixKey.Id });
   }
 
   [HttpGet("{type}/{value}")]

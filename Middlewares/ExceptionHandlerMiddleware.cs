@@ -25,6 +25,7 @@ public class ExceptionHandlerMiddleware(RequestDelegate next)
       UnauthorizedException _ => new ExceptionResponse(HttpStatusCode.Unauthorized, e.Message),
       NotFoundException _ => new ExceptionResponse(HttpStatusCode.NotFound, e.Message),
       CannotProceedPixKeyCreation _ => new ExceptionResponse(HttpStatusCode.Forbidden, e.Message),
+      ConflictException _ => new ExceptionResponse(HttpStatusCode.Conflict, e.Message),
       InvalidKeyTypeException _ => new ExceptionResponse(HttpStatusCode.BadRequest, e.Message),
       _ => new ExceptionResponse(HttpStatusCode.InternalServerError, "Erro Interno do Servidor. Tente novamente mais tarde.")
     };

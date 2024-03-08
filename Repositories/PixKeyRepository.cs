@@ -20,7 +20,12 @@ public class PixKeyRepository(AppDBContext context)
     return await _context.PixKey.Where(p => p.PaymentProviderAccountId.Equals(paymentProviderAccountId)).ToListAsync();
   }
 
-  public async Task<PixKey?> GetPixKeyByTypeAndValue(KeyType type, float value)
+  public async Task<PixKey?> GetPixKeyByValue(string value)
+  {
+    return await _context.PixKey.FirstOrDefaultAsync(p => p.Value.Equals(value));
+  }
+
+  public async Task<PixKey?> GetPixKeyByTypeAndValue(KeyType type, string value)
   {
     return await _context.PixKey.FirstOrDefaultAsync(p => p.Type.Equals(type) && p.Value.Equals(value));
   }
