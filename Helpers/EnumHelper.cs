@@ -8,7 +8,7 @@ public class EnumHelper
   public static KeyType MatchStringToKeyType(string type) 
   {
     try {
-      KeyType matchValue = (KeyType)Enum.Parse(typeof(KeyType), type, true);
+      KeyType matchValue = (KeyType)Enum.Parse(typeof(KeyType), type);
       return matchValue;
     } catch {
       throw new InvalidKeyTypeException("Tipo Inválido de Chave Pix");
