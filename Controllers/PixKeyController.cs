@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using pixAPI.DTOs;
 using pixAPI.Models;
-using pixAPI.Helpers;
-using pixAPI.Repositories;
 using pixAPI.Services;
-using pixAPI.Exceptions;
 
 namespace pixAPI.Controllers;
 
@@ -18,13 +15,15 @@ public class PixKeyController(PixKeyService pixKeyService) : ControllerBase
   public async Task<IActionResult> CreatePixKey(CreatePixKeyDTO dto)
   {
     PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
-    var createdPixKey = await _pixKeyService.CreatePixKey(bankData, dto);
+    PixKey createdPixKey = await _pixKeyService.CreatePixKey(bankData, dto);
     return CreatedAtAction(nameof(CreatePixKey), null, new { id = createdPixKey.Id });
   }
 
   [HttpGet("{type}/{value}")]
-  public IActionResult GetPixKey(string type, string value)
+  public async Task<IActionResult> GetPixKey(string type, string value)
   {
-    return Ok();
+    PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
+    GetPixKeyDTO pixKeyDetails = await _pixKeyService.GetPixKey(bankData, type, value);
+    return Ok(pixKeyDetails);
   }
 }

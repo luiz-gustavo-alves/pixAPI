@@ -26,6 +26,22 @@ public class PixKeyService(
     return user;
   }
 
+  private async Task<PixKey> GetPixKeyByTypeAndValueOrFail(KeyType type, string value) 
+  {
+    PixKey? pixKey = await _pixKeyRepository.GetPixKeyByTypeAndValue(type, value);
+    if (pixKey is null)
+      throw new NotFoundException("Chave pix não encontrada");
+
+    return pixKey;
+  }
+
+  private static PaymentProvider ValidateBankDataOrFail(PaymentProvider? bankData) 
+  {
+    if (bankData is null)
+      throw new CannotProceedPixKeyCreation("Token inválido ou inexistente.");
+
+    return bankData;
+  }
   private static void ValidatePixKeyValue(KeyType keyType, string value, string CPF)
   {
     switch (keyType)
@@ -134,9 +150,7 @@ public class PixKeyService(
 
   public async Task<PixKey> CreatePixKey(PaymentProvider? bankData, CreatePixKeyDTO dto)
   {
-    if (bankData is null)
-      throw new CannotProceedPixKeyCreation("Token inválido ou inexistente.");
-
+    PaymentProvider validBankData = ValidateBankDataOrFail(bankData);
     string CPF = dto.User.CPF;
     User user = await GetUserByCPFOrFail(CPF);
 
@@ -147,8 +161,8 @@ public class PixKeyService(
     await ValidatePixKeyValueConflict(value);
 
     long userId = user.Id;
-    long bankId = bankData.Id;
-    List<PaymentProviderAccount> userAccountsFromPSP = await ValidateUserPixKeyCreation(userId, bankId);    
+    long bankId = validBankData.Id;
+    List<PaymentProviderAccount> userAccountsFromPSP = await ValidateUserPixKeyCreation(userId, bankId);
     PixKey pixKey = new() { Type = keyType, Value = value };
 
     string agency = dto.Account.Agency;
@@ -167,5 +181,23 @@ public class PixKeyService(
     }
     PixKey createdPixKey = await _pixKeyRepository.CreateAsync(pixKey);
     return createdPixKey;
+  }
+
+  public async Task<GetPixKeyDTO> GetPixKey(PaymentProvider? bankData, string type, string value) 
+  {
+    PaymentProvider validBankData = ValidateBankDataOrFail(bankData);
+    KeyType keyType = EnumHelper.MatchStringToKeyType(type);
+    PixKey pixKey = await GetPixKeyByTypeAndValueOrFail(keyType, value);
+
+    long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
+    GetPixKeyDTO? pixKeyDetails = _paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(paymentProviderAccountId, type, value);
+    if (pixKeyDetails is null)
+      throw new NotFoundException("Chave pix não encontrada");
+
+    string bankName = validBankData.BankName;
+    if (!pixKeyDetails.Account.BankName.Equals(bankName))
+      throw new UnauthorizedException("Banco inválido para acesso de chave pix");
+
+    return pixKeyDetails;
   }
 }
