@@ -94,7 +94,8 @@ Recupera as informações de uma determinada chave Pix através do tipo (type) e
     "type": "CPF, Email, Phone ou Random"
   },
   "user": {
-    "cpf": "Número do CPF"
+    "name": "Nome do usuário",
+    "maskedCpf": "Número do CPF - somente os três primeiros e dois últimos dígitos"
   },
   "account": {
     "number": "Número da conta bancária",
