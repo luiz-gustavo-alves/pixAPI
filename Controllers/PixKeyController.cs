@@ -16,7 +16,12 @@ public class PixKeyController(PixKeyService pixKeyService) : ControllerBase
   {
     PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
     PixKey createdPixKey = await _pixKeyService.CreatePixKey(bankData, dto);
-    return CreatedAtAction(nameof(CreatePixKey), null, new { id = createdPixKey.Id });
+    return CreatedAtAction(nameof(CreatePixKey), null, new { 
+      Id = createdPixKey.Id, 
+      Type = dto.Key.Type, 
+      Value = dto.Key.Value, 
+      CreatedAt = createdPixKey.CreatedAt
+    });
   }
 
   [HttpGet("{type}/{value}")]
