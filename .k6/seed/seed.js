@@ -49,11 +49,10 @@ function generatePaymentProviders() {
   console.log(`Generating ${PAYMENT_PROVIDERS} payment providers...`);
   const paymentProviders = [];
   for (let i = 0; i < PAYMENT_PROVIDERS; i++) {
-    const timestamp = Date.now().toString();
-    const randomString = `${faker.string.nanoid(64 - timestamp.length).concat(timestamp)}`;
+    const value = Date.now().toString() + i.toString();
     paymentProviders.push({
-      Token: randomString,
-      BankName: randomString,
+      Token: value,
+      BankName: value,
     });
   }
   return paymentProviders;
