@@ -13,21 +13,22 @@ public class AuthorizationHandlerMiddleware(RequestDelegate next)
     if (path.HasValue && path.Value.StartsWith("/keys"))
     {
       if (!context.Request.Headers.ContainsKey("Authorization"))
-      {
-        throw new UnauthorizedException("Token inválido ou inexistente.");
-      }
+        throw new UnauthorizedException("Formato inválido para autentificação.");
 
-      var token = context.Request.Headers.Authorization.FirstOrDefault()?.Split(" ").Last();
+      var authorization = context.Request.Headers.Authorization;
+      var bearer = authorization.FirstOrDefault()?.Split(" ")[0];
+
+      if (bearer is null || !bearer.Equals("Bearer"))
+        throw new UnauthorizedException("Formato inválido para autentificação.");
+
+      var token = authorization.FirstOrDefault()?.Split(" ")[1];
       if (token is null)
-      {
         throw new UnauthorizedException("Token inválido ou inexistente.");
-      }
 
       PaymentProvider? paymentProvider = await paymentProviderRepository.GetBankByToken(token);
       if (paymentProvider is null)
-      {
         throw new UnauthorizedException("Token inválido ou inexistente.");
-      }
+
       context.Items["bankData"] = paymentProvider;
     }
     await _next(context);
