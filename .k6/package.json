@@ -1,0 +1,12 @@
+{
+  "description": "Stress Tests using k6 - pixAPI",
+  "scripts": {
+    "seed": "node ./seed/seed.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "dotenv": "^16.4.5",
+    "knex": "^3.1.0",
+    "pg": "^8.11.3"
+  }
+}
