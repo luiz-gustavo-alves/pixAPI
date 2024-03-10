@@ -2,8 +2,8 @@ import http from "k6/http";
 import { SharedArray } from "k6/data";
 
 export const options = {
-  vus: 20,
-  duration: "10s",
+  vus: 30,
+  duration: "20s",
 };
 
 const pixKeys = new SharedArray("PixKeys", function () {
