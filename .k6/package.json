@@ -1,7 +1,12 @@
 {
   "description": "Stress Tests using k6 - pixAPI",
   "scripts": {
-    "seed": "node ./seed/seed.js"
+    "seed": "node ./seed/seed.js",
+    "payload": "node ./payload/payload.js",
+    "pretest": "npm run seed && npm run payload",
+    "test:health": "k6 run ./tests/health.test.js",
+    "test:getPixKey": "k6 run ./tests/getPixKey.test.js",
+    "test:createPixKey": "k6 run ./tests/createPixKey.test.js"
   },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
