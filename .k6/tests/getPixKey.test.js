@@ -19,5 +19,5 @@ const token = new SharedArray("Token", function () {
 export default function () {
   const pixKey = pixKeys[Math.floor(Math.random() * pixKeys.length)];
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].token}` };
-  http.get(`http://localhost:5180/keys/${pixKey.Type}/${pixKey.Value}`, { headers });
+  http.get(`${__ENV.BASE_URL}/keys/${pixKey.Type}/${pixKey.Value}`, { headers });
 }

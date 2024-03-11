@@ -33,5 +33,5 @@ export default function () {
   };
 
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].token}` };
- http.post(`http://localhost:5180/keys`, JSON.stringify(body), { headers });
+ http.post(`${__ENV.BASE_URL}/keys`, JSON.stringify(body), { headers });
 }

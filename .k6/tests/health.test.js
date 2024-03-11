@@ -6,5 +6,5 @@ export const options = {
 }
 
 export default function () {
-  http.get(`http://localhost:5180/health`);
+  http.get(`${__ENV.BASE_URL}/health`);
 }
