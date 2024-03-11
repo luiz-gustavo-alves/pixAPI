@@ -9,10 +9,10 @@ const knex = require("knex")({
   connection: process.env.DATABASE_URL,
 });
 
-const USERS = 1_000_000;
-const PAYMENT_PROVIDERS = 1_000_000;
-const PAYMENT_PROVIDERS_ACCOUNTS = 1_000_000;
-const PIX_KEYS = 1_000_000;
+const USERS = 500_000;
+const PAYMENT_PROVIDERS = 500_000;
+const PAYMENT_PROVIDERS_ACCOUNTS = 500_000;
+const PIX_KEYS = 500_000;
 
 const DELETE_DATA = true;
 const GENERATE_USERS = true;
