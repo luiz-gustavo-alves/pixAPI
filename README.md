@@ -16,29 +16,26 @@ Lista de ferramentas e tecnologias utilizadas no desenvolvimento do projeto:
 
 ## Instruções para Executar o Projeto
 - Clone este repositório com o comando `git clone https://github.com/luiz-gustavo-alves/pixAPI.git`;
-- Utilize o comando `dotnet watch` para subir a aplicação;
-- Em caso de sucesso, a aplicação estará rodando através da URL: [http://localhost:5180](http://localhost:5180).
+- Utilize o comando `dotnet watch` para subir a aplicação.
+
+## Intruções para Subir os Containers de Monitoramento
+- Acesse a pasta **Metrics** utilizando o comando `cd Metrics`;
+- Com Docker iniciado, utilize o comando `docker compose up -d` para iniciar os containers da aplicação .NET e das ferramentas Prometheus e Grafana.
 
 ## Instruções para Executar os Testes de Carga
-- Abre dois terminais shell;
-- No primeiro terminal shell, utilize o comando `dotnet watch` para subir a aplicação;
-- No segundo terminal shell, acesse a pasta **.k6** utilizando o comando `cd .k6`;
-- Utilize o comando `npm run pretest` para gerar a _seed_ no banco de dados e _payload_ das requisições para o testes de carga;
+- Com os containers da pasta **Metrics** ativos acesse a pasta **.k6** utilizando o comando `cd .k6`;
+   Utilize o comando `npm run pretest` para gerar a _seed_ no banco de dados e _payload_ das requisições para o testes de carga;
 - Lista de testes implementados:
   - **npm run test:health**: Teste de carga para o Endpoint **GET /health**;
   - **npm run test:getPixKey**: Teste de carga para o Endpoint **GET /keys/:type/:value**;
   - **npm run test:createPixKey** Teste de carga para o Endpoint **POST /keys**.
 
-## Intruções para Subir os Containers de Monitoramento
-- Acesse a pasta **Metrics** utilizando o comando `cd Metrics`;
-- Com Docker iniciado, utilize o comando `docker compose up -d` para iniciar os containers das ferramentas Prometheus e Grafana;
-
 ## Documentação das rotas da API
 
 ### Swagger
-A documentação das rotas da API foi feita utilizando Swagger e pode ser vista através deste [link](http://localhost:5180/swagger)
+A documentação das rotas da API foi feita utilizando Swagger.
 
-Para acessar o link é necessário subir a aplicação utilizando o comando `dotnet watch`.
+Para acessar o link da documentação via Swagger é necessário subir a aplicação utilizando o comando `dotnet watch` e acessar este [link](http://localhost:5180).
 
 <hr />
 
