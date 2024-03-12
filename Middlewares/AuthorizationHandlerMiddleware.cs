@@ -7,10 +7,23 @@ namespace pixAPI.Middlewares;
 public class AuthorizationHandlerMiddleware(RequestDelegate next)
 {
   private readonly RequestDelegate _next = next;
+  private readonly Dictionary<string, bool> authRoutes = new()
+  {
+    { "keys", true },
+    { "payments", true }
+  };
+
   public async Task InvokeAsync(HttpContext context, PaymentProviderRepository paymentProviderRepository)
   {
     var path = context.Request.Path;
-    if (path.HasValue && path.Value.StartsWith("/keys"))
+    if (!path.HasValue) 
+    {
+      await _next(context);
+    }
+
+    string strPath = path.ToString();
+    string firstPathValue = strPath.Split('/')[1];
+    if (authRoutes.ContainsKey(firstPathValue))
     {
       if (!context.Request.Headers.ContainsKey("Authorization"))
         throw new UnauthorizedException("Formato inválido para autentificação.");
