@@ -9,6 +9,7 @@ public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(op
   public DbSet<PaymentProvider> PaymentProvider { get; set; } = null!;
   public DbSet<PaymentProviderAccount> PaymentProviderAccount { get; set; } = null!;
   public DbSet<PixKey> PixKey { get; set; } = null!;
+  public DbSet<Payments> Payments { get; set; } = null!;
 
   protected override void OnModelCreating(ModelBuilder builder)
   {
@@ -16,7 +17,8 @@ public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(op
     builder.Entity<PaymentProvider>().HasKey(paymentProvider => paymentProvider.Id);
     builder.Entity<PaymentProviderAccount>().HasKey(paymentProviderAccount => paymentProviderAccount.Id);
     builder.Entity<PixKey>().HasKey(pixKey => pixKey.Id);
-
+    builder.Entity<Payments>().HasKey(payments => payments.Id);
+  
     builder.Entity<User>().HasIndex(user => user.CPF).IsUnique();
     builder.Entity<PaymentProvider>().HasIndex(paymentProvider => paymentProvider.Token).IsUnique();
     builder.Entity<PaymentProvider>().HasIndex(paymentProvider => paymentProvider.BankName).IsUnique();
@@ -29,6 +31,8 @@ public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(op
     builder.Entity<PaymentProviderAccount>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
     builder.Entity<PixKey>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
     builder.Entity<PixKey>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
+    builder.Entity<Payments>().Property(b => b.UpdatedAt).HasDefaultValueSql("now()");
+    builder.Entity<Payments>().Property(b => b.CreatedAt).HasDefaultValueSql("now()");
   }
 
   public override int SaveChanges()

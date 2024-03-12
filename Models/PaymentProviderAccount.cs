@@ -21,4 +21,5 @@ public class PaymentProviderAccount : BaseEntity
   public User User { get; set; } = null!;
   public PaymentProvider Bank { get; set; } = null!;
   public ICollection<PixKey> PixKeys { get; set; } = null!;
+  public ICollection<Payments> Payments { get; set; } = null!;
 }
