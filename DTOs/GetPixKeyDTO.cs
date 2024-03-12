@@ -2,7 +2,19 @@ using System.Runtime.Serialization;
 
 namespace pixAPI.DTOs;
 
-[DataContract]
+[DataContract(Name = "PixKeyInformation")]
+public class GetPixKeyDTO
+{
+  [DataMember(Name = "key")]
+  public KeyGetPixKeySchema Key { get; set; } = null!;
+
+  [DataMember(Name = "user")]
+  public UserGetPixKeySchema User { get; set; } = null!;
+
+  [DataMember(Name = "account")]
+  public AccountGetPixKeySchema Account { get; set; } = null!;
+}
+
 public class KeyGetPixKeySchema
 {
   [DataMember(Name = "value")]
@@ -12,7 +24,6 @@ public class KeyGetPixKeySchema
   public string Type { get; set; } = null!;
 }
 
-[DataContract]
 public class UserGetPixKeySchema
 {
   [DataMember(Name = "name")]
@@ -22,7 +33,6 @@ public class UserGetPixKeySchema
   public string MaskedCpf { get; set; } = null!;
 }
 
-[DataContract]
 public class AccountGetPixKeySchema
 {
   [DataMember(Name = "number")]
@@ -36,17 +46,4 @@ public class AccountGetPixKeySchema
 
   [DataMember(Name = "bankId")]
   public string BankId { get; set; } = null!;
-}
-
-[DataContract]
-public class GetPixKeyDTO
-{
-  [DataMember(Name = "key")]
-  public KeyGetPixKeySchema Key { get; set; } = null!;
-
-  [DataMember(Name = "user")]
-  public UserGetPixKeySchema User { get; set; } = null!;
-
-  [DataMember(Name = "account")]
-  public AccountGetPixKeySchema Account { get; set; } = null!;
 }
