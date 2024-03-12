@@ -1,10 +1,9 @@
+using pixAPI.BLLs;
 using pixAPI.DTOs;
 using pixAPI.Models;
 using pixAPI.Repositories;
 using pixAPI.Exceptions;
 using pixAPI.Helpers;
-using System.Net.Mail;
-using System.Text.RegularExpressions;
 
 namespace pixAPI.Services;
 
@@ -16,73 +15,6 @@ public class PixKeyService(
   private readonly UserRepository _userRepository = userRepository;
   private readonly PaymentProviderAccountRepository _paymentProviderAccountRepository = paymentProviderAccountRepository;
   private readonly PixKeyRepository _pixKeyRepository = pixKeyRepository;
-
-  private async Task<User> GetUserByCPFOrFail(string CPF)
-  {
-    User? user = await _userRepository.GetUserByCPF(CPF);
-    if (user is null)
-      throw new NotFoundException("Usuário não encontrado.");
-
-    return user;
-  }
-
-  private async Task<PixKey> GetPixKeyByTypeAndValueOrFail(KeyType type, string value) 
-  {
-    PixKey? pixKey = await _pixKeyRepository.GetPixKeyByTypeAndValue(type, value);
-    if (pixKey is null)
-      throw new NotFoundException("Chave pix não encontrada");
-
-    return pixKey;
-  }
-
-  private static PaymentProvider ValidateBankDataOrFail(PaymentProvider? bankData) 
-  {
-    if (bankData is null)
-      throw new CannotProceedPixKeyCreation("Token inválido ou inexistente.");
-
-    return bankData;
-  }
-  private static void ValidatePixKeyValue(KeyType keyType, string value, string CPF)
-  {
-    switch (keyType)
-    {
-      case KeyType.CPF:
-        Regex cpfRegex = new(@"\d{11}");
-        if (!cpfRegex.IsMatch(value) || !CPF.Equals(value))
-          throw new CannotProceedPixKeyCreation("Valor inválido para chave pix CPF.");
-        break;
-
-      case KeyType.Email:
-        if (!MailAddress.TryCreate(value, out var mailAddress))
-          throw new CannotProceedPixKeyCreation("Valor inválido para chave pix Email.");
-        break;
-
-      case KeyType.Phone:
-        int MAX_PHONE_LENGTH = 11;
-        Regex phoneRegex = new(@"^\(?(?:[14689][1-9]|2[12478]|3[1234578]|5[1345]|7[134579])\)? ?(?:[2-8]|9[0-9])[0-9]{3}\-?[0-9]{4}$");
-        if (!phoneRegex.IsMatch(value) || value.Length != MAX_PHONE_LENGTH)
-          throw new CannotProceedPixKeyCreation("Valor inválido para chave pix Celular.");
-        break;
-
-      case KeyType.Random:
-        if (!Guid.TryParse(value, out _))
-          throw new CannotProceedPixKeyCreation("Valor inválido para chave pix Aleatória.");
-        break;
-    }
-  }
-
-  private async Task ValidatePixKeyValueConflict(string value)
-  {
-    PixKey? pixKey = await _pixKeyRepository.GetPixKeyByValue(value);
-    if (pixKey is not null)
-      throw new ConflictException("Já existe uma chave pix associada a este valor.");
-  }
-
-  private static void ValidatePixKeyCreationLimit(List<PixKey> pixKeys, int limit)
-  {
-    if (pixKeys.Count >= limit)
-      throw new CannotProceedPixKeyCreation("Limite excedido para criação de chave pix");
-  }
 
   private static bool CheckUserBankAccountExists(List<PaymentProviderAccount> userAccountsFromPSP, string agency, string number)
   {
@@ -136,46 +68,51 @@ public class PixKeyService(
   {
     List<PaymentProviderAccount> userAccounts = await _paymentProviderAccountRepository.GetAllAccountsByUserId(userId);
     List<PixKey> userPixKeys = await GetAllPixKeysByUser(userAccounts);
-    ValidatePixKeyCreationLimit(userPixKeys, 20);
+    PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeys, 20);
 
     List<PaymentProviderAccount> userAccountsFromPSP = FilterUserAccountByBankId(userAccounts, bankId);
     if (userAccountsFromPSP.Count > 0)
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
       List<PixKey> userPixKeysFromPSP = FilterPixKeyByUserBankAccountId(userPixKeys, userBankAccountId);
-      ValidatePixKeyCreationLimit(userPixKeysFromPSP, 5);
+      PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeysFromPSP, 5);
     }
     return userAccountsFromPSP;
   }
 
   public async Task<PixKey> CreatePixKey(PaymentProvider? bankData, CreatePixKeyDTO dto)
   {
-    PaymentProvider validBankData = ValidateBankDataOrFail(bankData);
-    string CPF = dto.User.CPF;
-    User user = await GetUserByCPFOrFail(CPF);
+    PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
+    User user = await ValidationHelper.GetUserByCPFOrFail(_userRepository, dto.User.CPF);
+    KeyType keyType = EnumHelper.MatchStringToKeyType(dto.Key.Type);
 
-    string value = dto.Key.Value;
-    string type = dto.Key.Type;
-    KeyType keyType = EnumHelper.MatchStringToKeyType(type);
-    ValidatePixKeyValue(keyType, value, CPF);
-    await ValidatePixKeyValueConflict(value);
+    PixKeyBLL.ValidatePixKeyValue(keyType, dto.Key.Value, dto.User.CPF);
+    await PixKeyBLL.ValidatePixKeyValueConflict(_pixKeyRepository, dto.Key.Value);
 
     long userId = user.Id;
     long bankId = validBankData.Id;
     List<PaymentProviderAccount> userAccountsFromPSP = await ValidateUserPixKeyCreation(userId, bankId);
-    PixKey pixKey = new() { Type = keyType, Value = value };
 
-    string agency = dto.Account.Agency;
-    string number = dto.Account.Number;
-    bool bankAcountExists = CheckUserBankAccountExists(userAccountsFromPSP, dto.Account.Agency, dto.Account.Number);
-    if (bankAcountExists)
+    PixKey pixKey = new()
+    {
+      Type = keyType,
+      Value = dto.Key.Value
+    };
+
+    if (CheckUserBankAccountExists(userAccountsFromPSP, dto.Account.Agency, dto.Account.Number))
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
       pixKey.PaymentProviderAccountId = userBankAccountId;
     }
     else
     {
-      PaymentProviderAccount account = new() { UserId = userId, BankId = bankId, Agency = agency, Number = number };
+      PaymentProviderAccount account = new() 
+      { 
+        UserId = userId,
+        BankId = bankId,
+        Agency = dto.Account.Agency,
+        Number = dto.Account.Number
+      };
       PaymentProviderAccount createdAccount = await _paymentProviderAccountRepository.CreateAsync(account);
       pixKey.PaymentProviderAccountId = createdAccount.Id;
     }
@@ -185,9 +122,9 @@ public class PixKeyService(
 
   public async Task<GetPixKeyDTO> GetPixKey(PaymentProvider? bankData, string type, string value) 
   {
-    PaymentProvider validBankData = ValidateBankDataOrFail(bankData);
+    PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
     KeyType keyType = EnumHelper.MatchStringToKeyType(type);
-    PixKey pixKey = await GetPixKeyByTypeAndValueOrFail(keyType, value);
+    PixKey pixKey = await PixKeyBLL.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
 
     long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
     GetPixKeyDTO? pixKeyDetails = _paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(paymentProviderAccountId, type, value);
