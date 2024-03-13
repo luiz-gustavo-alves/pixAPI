@@ -44,10 +44,12 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddScoped<HealthService>();
 builder.Services.AddScoped<PixKeyService>();
+builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<PaymentProviderRepository>();
 builder.Services.AddScoped<PaymentProviderAccountRepository>();
 builder.Services.AddScoped<PixKeyRepository>();
+builder.Services.AddScoped<PaymentRepository>();
 
 // Database
 builder.Services.AddDbContext<AppDBContext>(opts =>
