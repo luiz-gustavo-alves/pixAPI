@@ -124,16 +124,15 @@ public class PixKeyService(
   {
     PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
     KeyType keyType = EnumHelper.MatchStringToKeyType(type);
-    PixKey pixKey = await PixKeyBLL.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
+    PixKey pixKey = await ValidationHelper.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
 
     long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
-    GetPixKeyDTO? pixKeyDetails = _paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(paymentProviderAccountId, type, value);
-    if (pixKeyDetails is null)
-      throw new NotFoundException("Chave pix não encontrada");
+    GetPixKeyDTO? pixKeyDetails = PixKeyBLL.GetPixKeyDetailsOrFail(
+      _paymentProviderAccountRepository, paymentProviderAccountId, type, value
+    );
 
-    string bankName = validBankData.BankName;
-    if (!pixKeyDetails.Account.BankName.Equals(bankName))
-      throw new UnauthorizedException("Banco inválido para acesso de chave pix");
+    long bankId = validBankData.Id;
+    PixKeyBLL.ValidatePixKeyDetailsPSP(pixKeyDetails, bankId);
 
     return pixKeyDetails;
   }
