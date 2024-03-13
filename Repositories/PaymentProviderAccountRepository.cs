@@ -27,10 +27,19 @@ public class PaymentProviderAccountRepository(AppDBContext context)
     return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId)).ToListAsync();
   }
 
-  public GetPixKeyDTO? GetUserAndBankDetailsWithPixKey(long paymentProviderAccountId, string type, string value)
+  public async Task<List<PaymentProviderAccount>> GetAccountsByBankIdAndUserId(long bankId, long userId) 
+  {
+    return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId) && a.UserId.Equals(userId)).ToListAsync();
+  }
+
+  public GetPixKeyDTO? GetUserAndBankDetailsWithPixKey(
+    long paymentProviderAccountId,
+    string type,
+    string value,
+    PaymentProvider bankData
+  )
   {
     var userAndBankDetails = from account in _context.PaymentProviderAccount
-                             join bank in _context.PaymentProvider on account.BankId equals bank.Id
                              join usr in _context.User on account.UserId equals usr.Id
                              where account.Id == paymentProviderAccountId
                              select new
@@ -39,8 +48,8 @@ public class PaymentProviderAccountRepository(AppDBContext context)
                                MaskedCpf = $"{usr.CPF.Substring(0, 3)}{usr.CPF.Substring(usr.CPF.Length - 2)}",
                                Agency = account.Agency,
                                Number = account.Number,
-                               BankName = bank.BankName,
-                               BankId = bank.Id,
+                               BankName = bankData.BankName,
+                               BankId = bankData.Id,
                              };
 
     List<GetPixKeyDTO> pixKeyDTO = [];

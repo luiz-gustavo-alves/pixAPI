@@ -55,22 +55,17 @@ public class PixKeyBLL
     PaymentProviderAccountRepository paymentProviderAccountRepository,
     long paymentProviderAccountId,
     string type,
-    string value
+    string value,
+    PaymentProvider bankData
   )
   {
     GetPixKeyDTO? pixKeyDetails = paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(
-      paymentProviderAccountId, type, value
+      paymentProviderAccountId, type, value, bankData
     );
 
     if (pixKeyDetails is null)
       throw new NotFoundException("Chave pix não encontrada");
 
     return pixKeyDetails;
-  }
-
-  public static void ValidatePixKeyDetailsPSP(GetPixKeyDTO pixKeyDetails, long bankId)
-  {
-    if (!pixKeyDetails.Account.BankId.Equals(bankId))
-      throw new UnauthorizedException("Banco inválido para acesso de chave pix");
   }
 }

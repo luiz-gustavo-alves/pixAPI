@@ -128,11 +128,8 @@ public class PixKeyService(
 
     long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
     GetPixKeyDTO? pixKeyDetails = PixKeyBLL.GetPixKeyDetailsOrFail(
-      _paymentProviderAccountRepository, paymentProviderAccountId, type, value
+      _paymentProviderAccountRepository, paymentProviderAccountId, type, value, validBankData
     );
-
-    long bankId = validBankData.Id;
-    PixKeyBLL.ValidatePixKeyDetailsPSP(pixKeyDetails, bankId);
 
     return pixKeyDetails;
   }
