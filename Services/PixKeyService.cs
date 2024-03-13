@@ -127,8 +127,8 @@ public class PixKeyService(
     PixKey pixKey = await ValidationHelper.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
 
     long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
-    GetPixKeyDTO? pixKeyDetails = PixKeyBLL.GetPixKeyDetailsOrFail(
-      _paymentProviderAccountRepository, paymentProviderAccountId, type, value, validBankData
+    GetPixKeyDTO pixKeyDetails = PixKeyBLL.GetPixKeyDetailsOrFail(
+      _paymentProviderAccountRepository, paymentProviderAccountId, type, value
     );
 
     return pixKeyDetails;

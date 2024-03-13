@@ -55,16 +55,12 @@ public class PixKeyBLL
     PaymentProviderAccountRepository paymentProviderAccountRepository,
     long paymentProviderAccountId,
     string type,
-    string value,
-    PaymentProvider bankData
+    string value
   )
   {
-    GetPixKeyDTO? pixKeyDetails = paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(
-      paymentProviderAccountId, type, value, bankData
+    GetPixKeyDTO pixKeyDetails = paymentProviderAccountRepository.GetUserAndBankDetailsWithPixKey(
+      paymentProviderAccountId, type, value
     );
-
-    if (pixKeyDetails is null)
-      throw new NotFoundException("Chave pix não encontrada");
 
     return pixKeyDetails;
   }
