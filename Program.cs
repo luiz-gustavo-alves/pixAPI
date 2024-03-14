@@ -6,13 +6,14 @@ using pixAPI.Middlewares;
 using pixAPI.Data;
 using Prometheus;
 using Microsoft.OpenApi.Models;
+using pixAPI.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -42,9 +43,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// Services - Repositories
 builder.Services.AddScoped<HealthService>();
 builder.Services.AddScoped<PixKeyService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<MessageService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<PaymentProviderRepository>();
 builder.Services.AddScoped<PaymentProviderAccountRepository>();
@@ -63,6 +66,10 @@ builder.Services.AddDbContext<AppDBContext>(opts =>
     string connectionString = $"Host={host};Port={port};Username={username};Password={password};Database={database}";
     opts.UseNpgsql(connectionString);
 });
+
+// Configs
+IConfigurationSection queueConfigurationSection = builder.Configuration.GetSection("QueueSettings");
+builder.Services.Configure<QueueConfig>(queueConfigurationSection);
 
 var app = builder.Build();
 
