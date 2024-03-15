@@ -20,6 +20,7 @@ public class ExceptionHandlerMiddleware(RequestDelegate next)
   }
 
   private static void HandleException(HttpContext context, Exception e) {
+    Console.WriteLine(e);
     ExceptionResponse response = e switch 
     {
       UnauthorizedException _ => new ExceptionResponse(HttpStatusCode.Unauthorized, e.Message),
@@ -28,7 +29,8 @@ public class ExceptionHandlerMiddleware(RequestDelegate next)
       CannotProceedPixKeyCreationException _ => new ExceptionResponse(HttpStatusCode.Forbidden, e.Message),
       CannotProceedPaymentException _ => new ExceptionResponse(HttpStatusCode.Forbidden, e.Message),
       ConflictException _ => new ExceptionResponse(HttpStatusCode.Conflict, e.Message),
-      InvalidKeyTypeException _ => new ExceptionResponse(HttpStatusCode.BadRequest, e.Message),
+      InvalidEnumException _ => new ExceptionResponse(HttpStatusCode.BadRequest, e.Message),
+      ServiceUnavailableException _ => new ExceptionResponse(HttpStatusCode.ServiceUnavailable, e.Message),
       _ => new ExceptionResponse(HttpStatusCode.InternalServerError, "Erro Interno do Servidor. Tente novamente mais tarde.")
     };
 

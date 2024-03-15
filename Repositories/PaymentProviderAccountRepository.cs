@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using pixAPI.Data;
 using pixAPI.Models;
 using pixAPI.DTOs;
-using pixAPI.Helpers;
 using pixAPI.Exceptions;
 
 namespace pixAPI.Repositories;
@@ -28,9 +27,28 @@ public class PaymentProviderAccountRepository(AppDBContext context)
     return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId)).ToListAsync();
   }
 
-  public async Task<List<PaymentProviderAccount>> GetAccountsByBankIdAndUserId(long bankId, long userId)
+  public async Task<int> GetAccountsByBankIdAndUserCounter(long bankId, long userId) 
   {
-    return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId) && a.UserId.Equals(userId)).ToListAsync();
+    List<PaymentProviderAccount> bankAccounts = await _context.PaymentProviderAccount.Where(
+      a => a.BankId.Equals(bankId) && a.UserId.Equals(userId)
+    ).ToListAsync();
+
+    return bankAccounts.Count;
+  }
+
+  public async Task<List<PaymentProviderAccount>> GetAccountByBankAndUserDetails(
+    long bankId,
+    long userId,
+    string agency,
+    string number
+  )
+  {
+    return await _context.PaymentProviderAccount.Where(a =>
+      a.BankId.Equals(bankId) && 
+      a.UserId.Equals(userId) &&
+      a.Agency.Equals(agency) &&
+      a.Number.Equals(number)
+    ).ToListAsync();
   }
 
   public GetPixKeyDTO GetUserAndBankDetailsWithPixKey(

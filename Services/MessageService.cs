@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using pixAPI.Config;
-using pixAPI.Models;
+using pixAPI.DTOs;
 using RabbitMQ.Client;
 
 namespace pixAPI.Services;
@@ -11,7 +11,7 @@ public class MessageService(IOptions<QueueConfig> queueConfig)
 {
   private readonly string _hostName = queueConfig.Value.HostName;
 
-  public void SendPaymentMessage(Payments createdPayment)
+  public void SendPaymentMessage(PaymentTransferStatusDTO dto, int toleranceTime)
   {
     ConnectionFactory factory = new()
     {
@@ -23,31 +23,26 @@ public class MessageService(IOptions<QueueConfig> queueConfig)
 
     channel.QueueDeclare(
       queue: "payments",
-      durable: false,
+      durable: true,
       exclusive: false,
       autoDelete: false,
       arguments: null
     );
 
-    Payments payment = new()
-    {
-      Id = createdPayment.Id,
-      Status = createdPayment.Status,
-      PixKeyId = createdPayment.PixKeyId,
-      PaymentProviderAccountId = createdPayment.PaymentProviderAccountId,
-      Amount = createdPayment.Amount,
-      Description = createdPayment.Description,
-      CreatedAt = createdPayment.CreatedAt,
-      UpdatedAt = createdPayment.UpdatedAt,
-    };
-
-    string json = JsonSerializer.Serialize(payment);
+    string json = JsonSerializer.Serialize(dto);
     var body = Encoding.UTF8.GetBytes(json);
+
+    IBasicProperties properties = channel.CreateBasicProperties();
+    properties.Persistent = true;
+    properties.Headers = new Dictionary<string, object>
+    {
+      { "time-to-live", toleranceTime }
+    };
 
     channel.BasicPublish(
       exchange: string.Empty,
       routingKey: "payments",
-      basicProperties: null,
+      basicProperties: properties,
       body: body
     );
   }
