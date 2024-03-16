@@ -3,7 +3,6 @@ using pixAPI.Repositories;
 using pixAPI.Exceptions;
 using pixAPI.Services;
 using pixAPI.DTOs;
-using pixAPI.Helpers;
 
 namespace pixAPI.BLLs;
 
@@ -48,18 +47,19 @@ public class PaymentsBLL
       );
   }
 
-  public static void SyncPaymentToCloud(MessageService messageService, Payments payment)
+  public static void SyncPaymentToCloud(
+    MessageService messageService,
+    Payments payment,
+    MakePaymentDTO dto,
+    string bankToken
+  )
   {
-    string paymentStatus = EnumHelper.MatchPaymentStatusToString(payment.Status);
-    PaymentTransferStatusDTO dto = new() 
+    try
     {
-      Id = payment.Id,
-      Status = paymentStatus
-    };
-
-    try {
-      messageService.SendPaymentMessage(dto, PAYMENT_MESSAGE_TOLERANCE_SECONDS);
-    } catch {
+      messageService.SendPaymentMessage(payment, dto, bankToken, PAYMENT_MESSAGE_TOLERANCE_SECONDS);
+    }
+    catch
+    {
       throw new ServiceUnavailableException("Serviço indisponível. Tente novamente mais tarde");
     }
   }

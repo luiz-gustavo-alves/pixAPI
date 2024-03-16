@@ -4,6 +4,7 @@ using pixAPI.Repositories;
 using pixAPI.Helpers;
 using pixAPI.BLLs;
 using pixAPI.Data;
+using pixAPI.Exceptions;
 
 namespace pixAPI.Services;
 
@@ -59,9 +60,19 @@ public class PaymentService(
       Description = dto.Description,
     };
     Payments createdPayment = await _paymentRepository.RecordPaymentFromUser(payment);
-    PaymentsBLL.SyncPaymentToCloud(_messageService, payment);
+    PaymentsBLL.SyncPaymentToCloud(_messageService, payment, dto, validBankData.Token);
     dbTransaction.Commit();
 
     return createdPayment;
+  }
+
+  public async Task<Payments> UpdatePaymentStatus(long paymentId, string paymentStatus)
+  {
+    PaymentStatus status = EnumHelper.MatchStringToPaymentStatus(paymentStatus);
+    Payments? updatedPayment = await _paymentRepository.UpdatePaymentStatus(paymentId, status);
+    if (updatedPayment is null)
+      throw new NotFoundException("Pagamento não encontrado");
+
+    return updatedPayment;
   }
 }

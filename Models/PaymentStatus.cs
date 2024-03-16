@@ -3,6 +3,6 @@ namespace pixAPI.Models;
 public enum PaymentStatus
 {
   PROCESSING,
-  SUCESS,
+  SUCCESS,
   FAILED,
 }

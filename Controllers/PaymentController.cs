@@ -27,4 +27,16 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
       CreatedAt = createdPayment.CreatedAt,
     });
   }
+
+  [HttpPatch("{paymentId}/{paymentStatus}")]
+  public async Task<IActionResult> UpdatePaymentStatus(long paymentId, string paymentStatus)
+  {
+    Payments updatedPayment = await _paymentService.UpdatePaymentStatus(paymentId, paymentStatus);
+    return Ok(new
+    {
+      Id = updatedPayment.Id,
+      Status = paymentStatus,
+      UpdatedAt = updatedPayment.UpdatedAt
+    });
+  }
 }

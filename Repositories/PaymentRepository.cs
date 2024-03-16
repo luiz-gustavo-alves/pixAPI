@@ -16,10 +16,10 @@ public class PaymentRepository(AppDBContext context)
     return payment;
   }
 
-  public async Task<Payments?> GetPaymentByIdempotenceKey(PaymentIdempotenceKey key, int seconds) 
+  public async Task<Payments?> GetPaymentByIdempotenceKey(PaymentIdempotenceKey key, int seconds)
   {
     DateTime secondsAgo = DateTime.UtcNow.AddSeconds(-seconds);
-    Payments? payment = await _context.Payments.Where(p => 
+    Payments? payment = await _context.Payments.Where(p =>
       p.PixKeyId.Equals(key.PixKeyId) &&
       p.PaymentProviderAccountId.Equals(key.PaymentProviderAccountId) &&
       p.Amount.Equals(key.Amount) &&
@@ -27,5 +27,18 @@ public class PaymentRepository(AppDBContext context)
     ).FirstOrDefaultAsync();
 
     return payment;
-  } 
+  }
+
+  public async Task<Payments?> UpdatePaymentStatus(long paymentId, PaymentStatus status)
+  {
+    Payments? payment = await _context.Payments.Where(p => p.Id.Equals(paymentId)).FirstOrDefaultAsync();
+    if (payment is null)
+      return null;
+
+    payment.Status = status;
+    payment.UpdatedAt = DateTime.UtcNow;
+    _context.Payments.Update(payment);
+    await _context.SaveChangesAsync();
+    return payment;
+  }
 }
