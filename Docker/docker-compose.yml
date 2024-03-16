@@ -66,6 +66,7 @@ services:
       - postgres
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - AplicationUrl=http://localhost:5000
       - DATABASE__HOST=postgres
       - DATABASE__PORT=5432
       - DATABASE__USERNAME=postgres
