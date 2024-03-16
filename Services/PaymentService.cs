@@ -66,9 +66,9 @@ public class PaymentService(
     return createdPayment;
   }
 
-  public async Task<Payments> UpdatePaymentStatus(long paymentId, string paymentStatus)
+  public async Task<Payments> UpdatePaymentStatus(long paymentId, UpdatePaymentStatusDTO dto)
   {
-    PaymentStatus status = EnumHelper.MatchStringToPaymentStatus(paymentStatus);
+    PaymentStatus status = EnumHelper.MatchStringToPaymentStatus(dto.Status);
     Payments? updatedPayment = await _paymentRepository.UpdatePaymentStatus(paymentId, status);
     if (updatedPayment is null)
       throw new NotFoundException("Pagamento não encontrado");

@@ -28,14 +28,14 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
     });
   }
 
-  [HttpPatch("{paymentId}/{paymentStatus}")]
-  public async Task<IActionResult> UpdatePaymentStatus(long paymentId, string paymentStatus)
+  [HttpPatch("{paymentId}")]
+  public async Task<IActionResult> UpdatePaymentStatus(long paymentId, UpdatePaymentStatusDTO dto)
   {
-    Payments updatedPayment = await _paymentService.UpdatePaymentStatus(paymentId, paymentStatus);
+    Payments updatedPayment = await _paymentService.UpdatePaymentStatus(paymentId, dto);
     return Ok(new
     {
       Id = updatedPayment.Id,
-      Status = paymentStatus,
+      Status = dto.Status,
       UpdatedAt = updatedPayment.UpdatedAt
     });
   }
