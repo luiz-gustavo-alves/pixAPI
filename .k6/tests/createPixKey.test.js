@@ -12,12 +12,12 @@ const users = new SharedArray("Users", function () {
 });
 
 const payloads = new SharedArray("Payload", function () {
-  const result = JSON.parse(open("../payload/existing_createPixKeyPayload.json"));
+  const result = JSON.parse(open("../payload/payload_createPixKey.json"));
   return result;
 })
 
 const token = new SharedArray("Token", function () {
-  const result = JSON.parse(open("../seed/existing_token.json"));
+  const result = JSON.parse(open("../seed/valid_bank.json"));
   return result;
 });
 
@@ -32,6 +32,6 @@ export default function () {
     account: payload.account,
   };
 
-  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].token}` };
- http.post(`${__ENV.BASE_URL}/keys`, JSON.stringify(body), { headers });
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].Token}` };
+  http.post(`${__ENV.BASE_URL}/keys`, JSON.stringify(body), { headers });
 }

@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 const fs = require("fs");
 const { faker } = require("@faker-js/faker");
+const { exit } = require("process");
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ const PAYMENT_PROVIDERS_ACCOUNTS = 500_000;
 const PIX_KEYS = 500_000;
 
 const DELETE_DATA = true;
+const GENERATE_VALID_ENTRIES = true;
 const GENERATE_USERS = true;
 const GENERATE_PAYMENT_PROVIDERS = true;
 const GENERATE_PAYMENT_PROVIDER_ACCOUNTS = true;
@@ -28,6 +30,65 @@ function getDataFromPixKeyTypeEnum(value) {
     "Random": 3,
   };
   return typeToEnum[value];
+}
+
+async function generateValidEntries() {
+  console.log(`Generating valid entries...`);
+  const VALID_CPF = "51200000000";
+  const VALID_BANK_NAME = "validBankName";
+  const user = await knex.select('Id').from("User").where('CPF', VALID_CPF);
+  if (user.length === 0) {
+    console.log("Generating VALID USER...");
+    const VALID_USER = [{ CPF: VALID_CPF, Name: faker.internet.userName() }];
+    await populateDataInDatabase(VALID_USER, "User");
+    generateJson("./seed/valid_user.json", VALID_USER);
+  }
+
+  let bank = await knex.select('Id').from("PaymentProvider").where('BankName', VALID_BANK_NAME);
+  if (bank.length === 0) {
+    console.log("Generating VALID BANK...");
+    const VALID_BANK = [{ Token: faker.string.uuid(64), BankName: VALID_BANK_NAME }];
+    await populateDataInDatabase(VALID_BANK, "PaymentProvider");
+    generateJson("./seed/valid_bank.json", VALID_BANK);
+  }
+
+  const userId = await knex.select('Id').from("User").where('CPF', VALID_CPF);
+  bank = await knex.select('Id', 'Token').from("PaymentProvider").where('BankName', VALID_BANK_NAME);
+  
+  account = await knex.select('Id').from("PaymentProviderAccount").where('UserId', userId[0].Id);
+  if (account.length === 0) {
+    const VALID_ACCOUNT = [
+      {
+        UserId: Number(userId[0].Id),
+        BankId: Number(bank[0].Id),
+        Number: faker.string.numeric(8),
+        Agency: faker.string.numeric(4),
+      }
+    ];
+    await populateDataInDatabase(VALID_ACCOUNT, "PaymentProviderAccount");
+    generateJson("./seed/valid_account.json", VALID_ACCOUNT);
+  }
+
+  account = await knex.select('Id').from("PaymentProviderAccount").where('UserId', userId[0].Id);
+  const pixKey = await knex.select('Id').from("PixKey").where('Value', VALID_CPF);
+  if (pixKey.length === 0) {
+    const VALID_PIX_KEY = [
+      {
+        PaymentProviderAccountId: Number(account[0].Id),
+        Type: getDataFromPixKeyTypeEnum("CPF"),
+        Value: VALID_CPF,
+      }
+    ];
+    const VALID_PIX_KEY_JSON = [
+      {
+        PaymentProviderAccountId: Number(account[0].Id),
+        Type: "CPF",
+        Value: VALID_CPF,
+      }
+    ];
+    await populateDataInDatabase(VALID_PIX_KEY, "PixKey");
+    generateJson("./seed/valid_pixKey.json", VALID_PIX_KEY_JSON);
+  }
 }
 
 function generateUsers() {
@@ -76,38 +137,7 @@ async function generatePaymentProviderAccounts() {
 
 async function generatePixKeys() {
   console.log(`Generating ${PIX_KEYS} pix keys...`);
-  const VALID_CPF = "51200000000";
-  const VALID_BANK_NAME = "generatePixKeyBankName";
-  const user = await knex.select('Id').from("User").where('CPF', VALID_CPF);
-  if (user.length === 0) {
-    console.log("Generating VALID USER...");
-    const VALID_USER = [{ CPF: VALID_CPF, Name: faker.internet.userName() }];
-    await populateDataInDatabase(VALID_USER, "User");
-  }
-
-  let bank = await knex.select('Id').from("PaymentProvider").where('BankName', VALID_BANK_NAME);
-  if (bank.length === 0) {
-    console.log("Generating VALID BANK...");
-    const VALID_BANK = [{ Token: faker.string.uuid(64), BankName: VALID_BANK_NAME }];
-    await populateDataInDatabase(VALID_BANK, "PaymentProvider");
-  }
-
-  const userId = await knex.select('Id').from("User").where('CPF', VALID_CPF);
-  bank = await knex.select('Id', 'Token').from("PaymentProvider").where('BankName', VALID_BANK_NAME);
-  const account = await knex.select('Id').from("PaymentProviderAccount").where('UserId', userId[0].Id);
-  const VALID_ACCOUNT = [
-    {
-      UserId: Number(userId[0].Id),
-      BankId: Number(bank[0].Id),
-      Number: faker.string.numeric(8),
-      Agency: faker.string.numeric(4),
-    }
-  ];
-
-  if (account.length === 0) {
-    await populateDataInDatabase(VALID_ACCOUNT, "PaymentProviderAccount");
-  }
-
+  const VALID_ACCOUNT = JSON.parse(fs.readFileSync("./seed/valid_account.json"));
   const accountId = await knex.select('Id').from("PaymentProviderAccount").where('UserId', VALID_ACCOUNT[0].UserId);
   const pixTypes = ["CPF", "Email", "Phone", "Random"];
   const pixKeys = [];
@@ -124,7 +154,7 @@ async function generatePixKeys() {
       Value: value,
     });
   }
-  return { pixKeys, pixKeyJSON, token: bank[0].Token };
+  return { pixKeys, pixKeyJSON };
 }
 
 async function populateDataInDatabase(data, tableName) {
@@ -142,10 +172,18 @@ function generateJson(filepath, data) {
 async function run() {
   if (DELETE_DATA) {
     console.log("Deleting data...")
+    await knex("Payments").del();
+    await knex("PixKey").del();
+    await knex("PaymentProviderAccount").del();
+    await knex("PaymentProvider").del();
     await knex("User").del();
   }
 
   const start = new Date();
+
+  if (GENERATE_VALID_ENTRIES) {
+    await generateValidEntries();
+  }
 
   if (GENERATE_USERS) {
     const users = generateUsers();
@@ -166,10 +204,9 @@ async function run() {
   }
 
   if (GENERATE_PIX_KEYS) {
-    const { pixKeys, pixKeyJSON, token } = await generatePixKeys();
+    const { pixKeys, pixKeyJSON } = await generatePixKeys();
     await populateDataInDatabase(pixKeys, "PixKey");
     generateJson("./seed/existing_pixKeys.json", pixKeyJSON);
-    generateJson("./seed/existing_token.json", [{ token }]);
   }
 
   console.log("Closing DB connection...");
@@ -178,6 +215,7 @@ async function run() {
   const end = new Date();
   console.log("Done!");
   console.log(`Finished in ${(end - start) / 1000} seconds`);
+  exit(0);
 }
 
 run();

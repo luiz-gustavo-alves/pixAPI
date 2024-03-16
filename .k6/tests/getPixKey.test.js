@@ -12,12 +12,12 @@ const pixKeys = new SharedArray("PixKeys", function () {
 });
 
 const token = new SharedArray("Token", function () {
-  const result = JSON.parse(open("../seed/existing_token.json"));
+  const result = JSON.parse(open("../seed/valid_bank.json"));
   return result;
 });
 
 export default function () {
   const pixKey = pixKeys[Math.floor(Math.random() * pixKeys.length)];
-  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].token}` };
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token[0].Token}` };
   http.get(`${__ENV.BASE_URL}/keys/${pixKey.Type}/${pixKey.Value}`, { headers });
 }
