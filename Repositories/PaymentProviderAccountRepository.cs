@@ -36,7 +36,7 @@ public class PaymentProviderAccountRepository(AppDBContext context)
     return bankAccounts.Count;
   }
 
-  public async Task<List<PaymentProviderAccount>> GetAccountByBankAndUserDetails(
+  public async Task<PaymentProviderAccount?> GetAccountByBankAndUserDetails(
     long bankId,
     long userId,
     string agency,
@@ -48,7 +48,7 @@ public class PaymentProviderAccountRepository(AppDBContext context)
       a.UserId.Equals(userId) &&
       a.Agency.Equals(agency) &&
       a.Number.Equals(number)
-    ).ToListAsync();
+    ).FirstOrDefaultAsync();
   }
 
   public GetPixKeyDTO GetUserAndBankDetailsWithPixKey(

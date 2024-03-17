@@ -11,12 +11,6 @@ public class PaymentsBLL
   private static readonly int IDEMPOTENCE_KEY_TOLERANCE_SECONDS = 30;
   private static readonly int PAYMENT_MESSAGE_TOLERANCE_SECONDS = 120;
 
-  public static void ValidateBankAccountExists(List<PaymentProviderAccount> bankAccount)
-  {
-    if (bankAccount.Count == 0)
-      throw new NotFoundException("Conta bancária do usuário não encontrada");
-  }
-
   public static void ValidateBankAccountOnwer(
     PaymentProviderAccount originalBankAccount,
     int bankAccountsCounter,

@@ -40,13 +40,13 @@ public class PaymentService(
     long userId = user.Id;
     string number = dto.Origin.Account.Number;
     string agency = dto.Origin.Account.Agency;
-    List<PaymentProviderAccount> originBankAccountList = await _paymentProviderAccountRepository.
+    PaymentProviderAccount? originBankAccount = await _paymentProviderAccountRepository.
       GetAccountByBankAndUserDetails(bankId, userId, agency, number);
 
-    PaymentsBLL.ValidateBankAccountExists(originBankAccountList);
+    if (originBankAccount is null)
+      throw new NotFoundException("Conta bancária do usuário não encontrada");
 
     int bankAccountsCounter = await _paymentProviderAccountRepository.GetAccountsByBankIdAndUserCounter(bankId, userId);
-    PaymentProviderAccount originBankAccount = originBankAccountList.ElementAt(0);
     PaymentsBLL.ValidateBankAccountOnwer(originBankAccount, bankAccountsCounter, userId);
     await PaymentsBLL.ValidatePaymentIdempotence(_paymentRepository, originBankAccount.Id, pixKey.Id, dto.Amount);
 
