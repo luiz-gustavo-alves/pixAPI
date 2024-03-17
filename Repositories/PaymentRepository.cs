@@ -37,7 +37,6 @@ public class PaymentRepository(AppDBContext context)
 
     payment.Status = status;
     payment.UpdatedAt = DateTime.UtcNow;
-    _context.Payments.Update(payment);
     await _context.SaveChangesAsync();
     return payment;
   }
