@@ -5,11 +5,13 @@ services:
     command:
       - '--path.rootfs=/host'
     pid: host
-    ports: 
+    ports:
       - 9100:9100
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
+    networks:
+      - pix-api-network
 
   prometheus:
     container_name: prometheus
@@ -18,14 +20,18 @@ services:
       - 9090:9090
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - pix-api-network
 
   grafana:
     container_name: grafana
     image: grafana/grafana:latest
-    ports: 
+    ports:
       - 3000:3000
     volumes:
       - grafana:/var/lib/grafana
+    networks:
+      - pix-api-network
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
@@ -36,6 +42,8 @@ services:
       - DATA_SOURCE_URI=postgres:5432/postgres?sslmode=disable
       - DATA_SOURCE_USER=postgres
       - DATA_SOURCE_PASS=postgres
+    networks:
+      - pix-api-network
 
   postgres:
     container_name: postgres
@@ -49,10 +57,12 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - pix-api-network
 
   pix-api:
     container_name: pix-api
@@ -66,12 +76,14 @@ services:
       - postgres
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - AplicationUrl=http://localhost:5000
       - DATABASE__HOST=postgres
       - DATABASE__PORT=5432
       - DATABASE__USERNAME=postgres
       - DATABASE__PASSWORD=postgres
       - DATABASE__NAME=pixAPI_test
+      - QueueSettings__HostName=172.17.0.1
+    networks:
+      - pix-api-network
 
   migrations:
     container_name: pix-api-migrations
@@ -87,6 +99,12 @@ services:
       - DATABASE__USERNAME=postgres
       - DATABASE__PASSWORD=postgres
       - DATABASE__NAME=pixAPI_test
+    networks:
+      - pix-api-network
+
+networks:
+  pix-api-network:
+    name: "pix-api-network"
 
 volumes:
   grafana:

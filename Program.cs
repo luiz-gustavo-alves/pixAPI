@@ -10,8 +10,6 @@ using pixAPI.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls(builder.Configuration["AplicationUrl"] ?? "http://localhost:5180");
-
 // Add services to the container.
 builder.Services.AddControllers();
 
