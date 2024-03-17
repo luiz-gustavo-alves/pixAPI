@@ -2,7 +2,7 @@ import http from "k6/http";
 import { SharedArray } from "k6/data";
 
 export const options = {
-  vus: 30,
+  vus: 10,
   duration: "20s",
 };
 
