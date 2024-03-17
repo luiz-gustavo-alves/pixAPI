@@ -7,6 +7,6 @@ public class BaseEntity
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   public DateTime? CreatedAt { get; set; }
 
-  [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   public DateTime? UpdatedAt { get; set; }
 }
