@@ -2,25 +2,26 @@ using pixAPI.BLLs;
 using pixAPI.DTOs;
 using pixAPI.Models;
 using pixAPI.Repositories;
-using pixAPI.Exceptions;
 using pixAPI.Helpers;
+using pixAPI.Exceptions;
 
 namespace pixAPI.Services;
 
 public class PixKeyService(
   UserRepository userRepository,
   PaymentProviderAccountRepository paymentProviderAccountRepository,
-  PixKeyRepository pixKeyRepository)
+  PixKeyRepository pixKeyRepository
+)
 {
   private readonly UserRepository _userRepository = userRepository;
   private readonly PaymentProviderAccountRepository _paymentProviderAccountRepository = paymentProviderAccountRepository;
   private readonly PixKeyRepository _pixKeyRepository = pixKeyRepository;
 
-  private static bool CheckUserBankAccountExists(List<PaymentProviderAccount> userAccountsFromPSP, string agency, string number)
+  private static bool CheckUserBankAccountExists(List<PaymentProviderAccount> userAccountsFromPSP, CreatePixKeyDTO dto)
   {
     foreach (var account in userAccountsFromPSP)
     {
-      if (account.Agency.Equals(agency) && account.Number.Equals(number))
+      if (account.Agency.Equals(dto.Account.Agency) && account.Number.Equals(dto.Account.Number))
         return true;
     }
     return false;
@@ -99,15 +100,15 @@ public class PixKeyService(
       Value = dto.Key.Value
     };
 
-    if (CheckUserBankAccountExists(userAccountsFromPSP, dto.Account.Agency, dto.Account.Number))
+    if (CheckUserBankAccountExists(userAccountsFromPSP, dto))
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
       pixKey.PaymentProviderAccountId = userBankAccountId;
     }
     else
     {
-      PaymentProviderAccount account = new() 
-      { 
+      PaymentProviderAccount account = new()
+      {
         UserId = userId,
         BankId = bankId,
         Agency = dto.Account.Agency,
@@ -117,19 +118,41 @@ public class PixKeyService(
       pixKey.PaymentProviderAccountId = createdAccount.Id;
     }
     PixKey createdPixKey = await _pixKeyRepository.CreateAsync(pixKey);
+
     return createdPixKey;
   }
 
-  public async Task<GetPixKeyDTO> GetPixKey(PaymentProvider? bankData, string type, string value) 
+  public async Task<GetPixKeyDTO> GetPixKey(string type, string value)
   {
-    PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
     KeyType keyType = EnumHelper.MatchStringToKeyType(type);
-    PixKey pixKey = await ValidationHelper.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
+    PixKey? pixKey = await _pixKeyRepository.GetUserAndBankAccountDetailsWithPixKey(keyType, value);
+    if (pixKey is null)
+      throw new NotFoundException("Chave Pix não encontrada.");
 
-    long paymentProviderAccountId = pixKey.PaymentProviderAccountId;
-    GetPixKeyDTO pixKeyDetails = PixKeyBLL.GetPixKeyDetailsOrFail(
-      _paymentProviderAccountRepository, paymentProviderAccountId, type, value
-    );
+    PaymentProviderAccount account = pixKey.PaymentProviderAccount;
+    PaymentProvider bank = account.Bank;
+    User user = account.User;
+
+    GetPixKeyDTO pixKeyDetails = new()
+    {
+      Account = new()
+      {
+        Agency = account.Agency,
+        Number = account.Number,
+        BankName = bank.BankName,
+        BankId = bank.Id
+      },
+      User = new()
+      {
+        Name = user.Name,
+        MaskedCpf = $"{user.CPF.Substring(0, 3)}{user.CPF.Substring(user.CPF.Length - 2)}",
+      },
+      Key = new()
+      {
+        Type = type,
+        Value = value,
+      }
+    };
 
     return pixKeyDetails;
   }

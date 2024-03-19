@@ -29,4 +29,13 @@ public class PixKeyRepository(AppDBContext context)
   {
     return await _context.PixKey.FirstOrDefaultAsync(p => p.Type.Equals(type) && p.Value.Equals(value));
   }
+
+  public async Task<PixKey?> GetUserAndBankAccountDetailsWithPixKey(KeyType type, string value)
+  {
+    return await _context.PixKey
+      .Include(p => p.PaymentProviderAccount)
+      .Include(p => p.PaymentProviderAccount.Bank)
+      .Include(p => p.PaymentProviderAccount.User)
+      .FirstOrDefaultAsync(p => p.Type.Equals(type) && p.Value.Equals(value));
+  }
 }

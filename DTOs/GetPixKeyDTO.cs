@@ -45,5 +45,5 @@ public class AccountGetPixKeySchema
   public string BankName { get; set; } = null!;
 
   [DataMember(Name = "bankId")]
-  public string BankId { get; set; } = null!;
+  public long BankId { get; set; }
 }

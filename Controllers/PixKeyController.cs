@@ -27,8 +27,7 @@ public class PixKeyController(PixKeyService pixKeyService) : ControllerBase
   [HttpGet("{type}/{value}")]
   public async Task<IActionResult> GetPixKey(string type, string value)
   {
-    PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
-    GetPixKeyDTO pixKeyDetails = await _pixKeyService.GetPixKey(bankData, type, value);
+    GetPixKeyDTO pixKeyDetails = await _pixKeyService.GetPixKey(type, value);
     return Ok(pixKeyDetails);
   }
 }

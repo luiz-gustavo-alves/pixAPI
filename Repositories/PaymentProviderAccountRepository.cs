@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using pixAPI.Data;
 using pixAPI.Models;
 using pixAPI.DTOs;
-using pixAPI.Exceptions;
 
 namespace pixAPI.Repositories;
 
@@ -27,7 +26,7 @@ public class PaymentProviderAccountRepository(AppDBContext context)
     return await _context.PaymentProviderAccount.Where(a => a.BankId.Equals(bankId)).ToListAsync();
   }
 
-  public async Task<int> GetAccountsByBankIdAndUserCounter(long bankId, long userId) 
+  public async Task<int> GetAccountsByBankIdAndUserCounter(long bankId, long userId)
   {
     List<PaymentProviderAccount> bankAccounts = await _context.PaymentProviderAccount.Where(
       a => a.BankId.Equals(bankId) && a.UserId.Equals(userId)
@@ -44,58 +43,10 @@ public class PaymentProviderAccountRepository(AppDBContext context)
   )
   {
     return await _context.PaymentProviderAccount.Where(a =>
-      a.BankId.Equals(bankId) && 
+      a.BankId.Equals(bankId) &&
       a.UserId.Equals(userId) &&
       a.Agency.Equals(agency) &&
       a.Number.Equals(number)
     ).FirstOrDefaultAsync();
-  }
-
-  public GetPixKeyDTO GetUserAndBankDetailsWithPixKey(
-    long paymentProviderAccountId,
-    string type,
-    string value
-  )
-  {
-    var userAndBankDetails = (
-                              from account in _context.PaymentProviderAccount
-                              join usr in _context.User on account.UserId equals usr.Id
-                              join bank in _context.PaymentProvider on account.BankId equals bank.Id
-                              where account.Id == paymentProviderAccountId
-                              select new
-                              {
-                                Name = usr.Name,
-                                MaskedCpf = $"{usr.CPF.Substring(0, 3)}{usr.CPF.Substring(usr.CPF.Length - 2)}",
-                                Agency = account.Agency,
-                                Number = account.Number,
-                                BankName = bank.BankName,
-                                BankId = bank.Id,
-                              }
-                            ).FirstOrDefault();
-
-    if (userAndBankDetails is null)
-      throw new NotFoundException("Conta de usuário não encontrada");
-
-    GetPixKeyDTO pixKeyDetails = new()
-    {
-      Account = new()
-      {
-        Agency = userAndBankDetails.Agency,
-        Number = userAndBankDetails.Number,
-        BankName = userAndBankDetails.BankName,
-        BankId = userAndBankDetails.BankId.ToString()
-      },
-      User = new()
-      {
-        Name = userAndBankDetails.Name,
-        MaskedCpf = userAndBankDetails.MaskedCpf,
-      },
-      Key = new()
-      {
-        Type = type,
-        Value = value,
-      }
-    };
-    return pixKeyDetails;
   }
 }
