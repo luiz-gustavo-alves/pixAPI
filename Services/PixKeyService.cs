@@ -4,13 +4,15 @@ using pixAPI.Models;
 using pixAPI.Repositories;
 using pixAPI.Helpers;
 using pixAPI.Exceptions;
+using pixAPI.Data;
 
 namespace pixAPI.Services;
 
 public class PixKeyService(
   UserRepository userRepository,
   PaymentProviderAccountRepository paymentProviderAccountRepository,
-  PixKeyRepository pixKeyRepository
+  PixKeyRepository pixKeyRepository,
+  AppDBContext context
 )
 {
   private readonly int USER_MAX_PIX_KEYS = 20;
@@ -18,6 +20,7 @@ public class PixKeyService(
   private readonly UserRepository _userRepository = userRepository;
   private readonly PaymentProviderAccountRepository _paymentProviderAccountRepository = paymentProviderAccountRepository;
   private readonly PixKeyRepository _pixKeyRepository = pixKeyRepository;
+  private readonly AppDBContext _context = context;
 
   private static bool CheckExistingUserBankAccount(List<PaymentProviderAccount> userAccountsFromPSP, CreatePixKeyDTO dto)
   {
@@ -86,6 +89,7 @@ public class PixKeyService(
     };
 
     bool existingUserBankAccount = CheckExistingUserBankAccount(userAccountsFromPSP, dto);
+    var dbTransaction = _context.Database.BeginTransaction();
     if (existingUserBankAccount)
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
@@ -104,6 +108,8 @@ public class PixKeyService(
       pixKey.PaymentProviderAccountId = createdAccount.Id;
     }
     PixKey createdPixKey = await _pixKeyRepository.CreateAsync(pixKey);
+    dbTransaction.Commit();
+
     return createdPixKey;
   }
 
