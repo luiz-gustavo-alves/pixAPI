@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using pixAPI.Data;
 using pixAPI.Models;
-using pixAPI.DTOs;
 
 namespace pixAPI.Repositories;
 
@@ -18,7 +17,10 @@ public class PaymentProviderAccountRepository(AppDBContext context)
 
   public async Task<List<PaymentProviderAccount>> GetAllAccountsByUserId(long userId)
   {
-    return await _context.PaymentProviderAccount.Where(a => a.UserId.Equals(userId)).ToListAsync();
+    return await _context.PaymentProviderAccount
+      .Where(a => a.UserId.Equals(userId))
+      .Include(a => a.PixKeys)
+      .ToListAsync();
   }
 
   public async Task<List<PaymentProviderAccount>> GetAllAccountsByBankId(long bankId)
@@ -28,9 +30,9 @@ public class PaymentProviderAccountRepository(AppDBContext context)
 
   public async Task<int> GetAccountsByBankIdAndUserCounter(long bankId, long userId)
   {
-    List<PaymentProviderAccount> bankAccounts = await _context.PaymentProviderAccount.Where(
-      a => a.BankId.Equals(bankId) && a.UserId.Equals(userId)
-    ).ToListAsync();
+    List<PaymentProviderAccount> bankAccounts = await _context.PaymentProviderAccount
+      .Where(a => a.BankId.Equals(bankId) && a.UserId.Equals(userId))
+      .ToListAsync();
 
     return bankAccounts.Count;
   }

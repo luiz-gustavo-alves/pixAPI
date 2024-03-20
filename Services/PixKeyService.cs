@@ -13,21 +13,21 @@ public class PixKeyService(
   PixKeyRepository pixKeyRepository
 )
 {
+  private readonly int USER_MAX_PIX_KEYS = 20;
+  private readonly int PSP_MAX_PIX_KEYS = 5;
   private readonly UserRepository _userRepository = userRepository;
   private readonly PaymentProviderAccountRepository _paymentProviderAccountRepository = paymentProviderAccountRepository;
   private readonly PixKeyRepository _pixKeyRepository = pixKeyRepository;
 
-  private static bool CheckUserBankAccountExists(List<PaymentProviderAccount> userAccountsFromPSP, CreatePixKeyDTO dto)
+  private static bool CheckExistingUserBankAccount(List<PaymentProviderAccount> userAccountsFromPSP, CreatePixKeyDTO dto)
   {
-    foreach (var account in userAccountsFromPSP)
-    {
-      if (account.Agency.Equals(dto.Account.Agency) && account.Number.Equals(dto.Account.Number))
-        return true;
-    }
-    return false;
+    PaymentProviderAccount? existingBankAccount = userAccountsFromPSP.Where(account =>
+      account.Agency.Equals(dto.Account.Agency) && account.Number.Equals(dto.Account.Number)).FirstOrDefault();
+
+    return existingBankAccount is not null;
   }
 
-  private async Task<List<PixKey>> GetAllPixKeysByUser(List<PaymentProviderAccount> userAccounts)
+  private static List<PixKey> GetAllPixKeysByUser(List<PaymentProviderAccount> userAccounts)
   {
     List<PixKey> userPixKeys = [];
     List<long> bankIdsList = [];
@@ -36,47 +36,35 @@ public class PixKeyService(
       if (bankIdsList.Contains(account.BankId))
         continue;
 
-      List<PixKey> pixKeys = await _pixKeyRepository.GetAllPixKeysByUserBankAccountId(account.Id);
+      List<PixKey> pixKeys = account.PixKeys.ToList();
       bankIdsList.Add(account.BankId);
       userPixKeys.AddRange(pixKeys);
     }
     return userPixKeys;
   }
 
-  private static List<PaymentProviderAccount> FilterUserAccountByBankId(List<PaymentProviderAccount> userAccounts, long bankId)
+  private static List<PaymentProviderAccount> FilterUserAccountByPSP(List<PaymentProviderAccount> userAccounts, long bankId)
   {
-    List<PaymentProviderAccount> userAccountsFromPSP = [];
-    foreach (var account in userAccounts)
-    {
-      if (account.BankId.Equals(bankId))
-        userAccountsFromPSP.Add(account);
-    }
-    return userAccountsFromPSP;
+    return userAccounts.Where(account => account.BankId.Equals(bankId)).ToList();
   }
 
-  private static List<PixKey> FilterPixKeyByUserBankAccountId(List<PixKey> userPixKeys, long userBankAccountId)
+  private static List<PixKey> FilterPixKeysByUserAccount(List<PixKey> userPixKeys, long userBankAccountId)
   {
-    List<PixKey> userPixKeysFromPSP = [];
-    foreach (var pixKey in userPixKeys)
-    {
-      if (pixKey.PaymentProviderAccountId.Equals(userBankAccountId))
-        userPixKeysFromPSP.Add(pixKey);
-    }
-    return userPixKeysFromPSP;
+    return userPixKeys.Where(pixKey => pixKey.PaymentProviderAccountId.Equals(userBankAccountId)).ToList();
   }
 
   private async Task<List<PaymentProviderAccount>> ValidateUserPixKeyCreation(long userId, long bankId)
   {
     List<PaymentProviderAccount> userAccounts = await _paymentProviderAccountRepository.GetAllAccountsByUserId(userId);
-    List<PixKey> userPixKeys = await GetAllPixKeysByUser(userAccounts);
-    PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeys, 20);
+    List<PixKey> userPixKeys = GetAllPixKeysByUser(userAccounts);
+    PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeys, USER_MAX_PIX_KEYS);
 
-    List<PaymentProviderAccount> userAccountsFromPSP = FilterUserAccountByBankId(userAccounts, bankId);
+    List<PaymentProviderAccount> userAccountsFromPSP = FilterUserAccountByPSP(userAccounts, bankId);
     if (userAccountsFromPSP.Count > 0)
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
-      List<PixKey> userPixKeysFromPSP = FilterPixKeyByUserBankAccountId(userPixKeys, userBankAccountId);
-      PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeysFromPSP, 5);
+      List<PixKey> userPixKeysFromPSP = FilterPixKeysByUserAccount(userPixKeys, userBankAccountId);
+      PixKeyBLL.ValidatePixKeyCreationLimit(userPixKeysFromPSP, PSP_MAX_PIX_KEYS);
     }
     return userAccountsFromPSP;
   }
@@ -90,17 +78,15 @@ public class PixKeyService(
     PixKeyBLL.ValidatePixKeyValue(keyType, dto.Key.Value, dto.User.CPF);
     await PixKeyBLL.ValidatePixKeyValueConflict(_pixKeyRepository, dto.Key.Value);
 
-    long userId = user.Id;
-    long bankId = validBankData.Id;
-    List<PaymentProviderAccount> userAccountsFromPSP = await ValidateUserPixKeyCreation(userId, bankId);
-
+    List<PaymentProviderAccount> userAccountsFromPSP = await ValidateUserPixKeyCreation(user.Id, validBankData.Id);
     PixKey pixKey = new()
     {
       Type = keyType,
       Value = dto.Key.Value
     };
 
-    if (CheckUserBankAccountExists(userAccountsFromPSP, dto))
+    bool existingUserBankAccount = CheckExistingUserBankAccount(userAccountsFromPSP, dto);
+    if (existingUserBankAccount)
     {
       long userBankAccountId = userAccountsFromPSP.ElementAt(0).Id;
       pixKey.PaymentProviderAccountId = userBankAccountId;
@@ -109,8 +95,8 @@ public class PixKeyService(
     {
       PaymentProviderAccount account = new()
       {
-        UserId = userId,
-        BankId = bankId,
+        UserId = user.Id,
+        BankId = validBankData.Id,
         Agency = dto.Account.Agency,
         Number = dto.Account.Number
       };
@@ -118,7 +104,6 @@ public class PixKeyService(
       pixKey.PaymentProviderAccountId = createdAccount.Id;
     }
     PixKey createdPixKey = await _pixKeyRepository.CreateAsync(pixKey);
-
     return createdPixKey;
   }
 

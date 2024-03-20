@@ -27,21 +27,14 @@ public class PaymentService(
   public async Task<Payments> MakePayment(PaymentProvider? bankData, MakePaymentDTO dto)
   {
     PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
-
-    string CPF = dto.Origin.User.CPF;
-    User user = await ValidationHelper.GetUserByCPFOrFail(_userRepository, CPF);
-
-    string value = dto.Destiny.Key.Value;
-    string type = dto.Destiny.Key.Type;
-    KeyType keyType = EnumHelper.MatchStringToKeyType(type);
-    PixKey pixKey = await ValidationHelper.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, value);
+    User user = await ValidationHelper.GetUserByCPFOrFail(_userRepository, dto.Origin.User.CPF);
+    KeyType keyType = EnumHelper.MatchStringToKeyType(dto.Destiny.Key.Type);
+    PixKey pixKey = await ValidationHelper.GetPixKeyByTypeAndValueOrFail(_pixKeyRepository, keyType, dto.Destiny.Key.Value);
 
     long bankId = validBankData.Id;
     long userId = user.Id;
-    string number = dto.Origin.Account.Number;
-    string agency = dto.Origin.Account.Agency;
     PaymentProviderAccount? originBankAccount = await _paymentProviderAccountRepository.
-      GetAccountByBankAndUserDetails(bankId, userId, agency, number);
+      GetAccountByBankAndUserDetails(bankId, userId, dto.Origin.Account.Number, dto.Origin.Account.Agency);
 
     if (originBankAccount is null)
       throw new NotFoundException("Conta bancária do usuário não encontrada");
