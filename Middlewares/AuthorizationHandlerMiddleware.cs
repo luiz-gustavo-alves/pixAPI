@@ -10,7 +10,8 @@ public class AuthorizationHandlerMiddleware(RequestDelegate next)
   private readonly Dictionary<string, bool> authRoutes = new()
   {
     { "keys", true },
-    { "payments", true }
+    { "payments", true },
+    { "concilliation", true }
   };
 
   public async Task InvokeAsync(HttpContext context, PaymentProviderRepository paymentProviderRepository)

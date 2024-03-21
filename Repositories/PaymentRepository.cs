@@ -1,5 +1,4 @@
 using pixAPI.Models;
-using pixAPI.DTOs;
 using pixAPI.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +13,45 @@ public class PaymentRepository(AppDBContext context)
     _context.Payments.Add(payment);
     await _context.SaveChangesAsync();
     return payment;
+  }
+
+  public async Task<Payments?> GetPaymentById(long paymentId) 
+  {
+    return await _context.Payments.FirstOrDefaultAsync(p => p.Id.Equals(paymentId));
+  }
+
+  public int GetAllTodayPaymentsByPSPCounter(long bankId)
+  {
+    DateTime today = DateTime.UtcNow;
+    DateTime minDate = new DateTime(today.Date.Year, today.Date.Month, today.Date.Day);
+    DateTime maxDate = minDate.AddDays(1);
+
+    int paymentsCounter = _context.Payments.Where(p =>
+        p.PaymentProviderAccount.BankId.Equals(bankId) &&
+        p.CreatedAt.ToUniversalTime() >= minDate.ToUniversalTime() &&
+        p.CreatedAt.ToUniversalTime() <= maxDate.ToUniversalTime()
+      )
+      .Count();
+
+    return paymentsCounter;
+  }
+
+  public async Task<List<Payments>> GetTodayPaymentsByPSP(long bankId, int PAYMENT_CHUNK)
+  {
+    DateTime today = DateTime.UtcNow;
+    DateTime minDate = new DateTime(today.Date.Year, today.Date.Month, today.Date.Day);
+    DateTime maxDate = minDate.AddDays(1);
+
+    List<Payments> todayPaymentsByPSP = await _context.Payments.Where(p =>
+        p.PaymentProviderAccount.BankId.Equals(bankId) &&
+        p.CreatedAt.ToUniversalTime() >= minDate.ToUniversalTime() &&
+        p.CreatedAt.ToUniversalTime() <= maxDate.ToUniversalTime()
+      )
+      .OrderBy(p => p.CreatedAt)
+      .Skip(PAYMENT_CHUNK)
+      .ToListAsync();
+
+    return todayPaymentsByPSP;
   }
 
   public async Task<Payments?> GetPaymentByIdempotenceKey(PaymentIdempotenceKey key, int seconds)

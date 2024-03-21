@@ -30,6 +30,7 @@ public class ExceptionHandlerMiddleware(RequestDelegate next)
       CannotProceedPaymentException _ => new ExceptionResponse(HttpStatusCode.Forbidden, e.Message),
       ConflictException _ => new ExceptionResponse(HttpStatusCode.Conflict, e.Message),
       InvalidEnumException _ => new ExceptionResponse(HttpStatusCode.BadRequest, e.Message),
+      FileDoesNotExistException _ => new ExceptionResponse(HttpStatusCode.NotFound, e.Message),
       ServiceUnavailableException _ => new ExceptionResponse(HttpStatusCode.ServiceUnavailable, e.Message),
       _ => new ExceptionResponse(HttpStatusCode.InternalServerError, "Erro Interno do Servidor. Tente novamente mais tarde.")
     };
