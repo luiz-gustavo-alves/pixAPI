@@ -34,7 +34,7 @@ public class PaymentService(
     long bankId = validBankData.Id;
     long userId = user.Id;
     PaymentProviderAccount? originBankAccount = await _paymentProviderAccountRepository.
-      GetAccountByBankAndUserDetails(bankId, userId, dto.Origin.Account.Number, dto.Origin.Account.Agency);
+      GetAccountByBankAndUserDetails(bankId, userId, dto.Origin.Account.Agency, dto.Origin.Account.Number);
 
     if (originBankAccount is null)
       throw new NotFoundException("Conta bancária do usuário não encontrada");
