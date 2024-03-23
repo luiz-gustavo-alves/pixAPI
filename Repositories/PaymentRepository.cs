@@ -20,10 +20,9 @@ public class PaymentRepository(AppDBContext context)
     return await _context.Payments.FirstOrDefaultAsync(p => p.Id.Equals(paymentId));
   }
 
-  public int GetAllTodayPaymentsByPSPCounter(long bankId)
+  public int GetAllPaymentsByPSPCounterInDate(DateTime date, long bankId)
   {
-    DateTime today = DateTime.UtcNow;
-    DateTime minDate = new DateTime(today.Date.Year, today.Date.Month, today.Date.Day);
+    DateTime minDate = new DateTime(date.Date.Year, date.Date.Month, date.Date.Day);
     DateTime maxDate = minDate.AddDays(1);
 
     int paymentsCounter = _context.Payments.Where(p =>
@@ -36,10 +35,9 @@ public class PaymentRepository(AppDBContext context)
     return paymentsCounter;
   }
 
-  public async Task<List<Payments>> GetTodayPaymentsByPSP(long bankId, int PAYMENT_CHUNK)
+  public async Task<List<Payments>> GetPaymentsByPSPInDate(DateTime date, long bankId, int skip, int chunk)
   {
-    DateTime today = DateTime.UtcNow;
-    DateTime minDate = new DateTime(today.Date.Year, today.Date.Month, today.Date.Day);
+    DateTime minDate = new DateTime(date.Date.Year, date.Date.Month, date.Date.Day);
     DateTime maxDate = minDate.AddDays(1);
 
     List<Payments> todayPaymentsByPSP = await _context.Payments.Where(p =>
@@ -48,7 +46,8 @@ public class PaymentRepository(AppDBContext context)
         p.CreatedAt.ToUniversalTime() <= maxDate.ToUniversalTime()
       )
       .OrderBy(p => p.CreatedAt)
-      .Skip(PAYMENT_CHUNK)
+      .Skip(skip)
+      .Take(chunk)
       .ToListAsync();
 
     return todayPaymentsByPSP;

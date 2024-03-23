@@ -12,10 +12,18 @@ public class ConcilliationController(ConcilliationService concilliationService) 
   private readonly ConcilliationService _concilliationService = concilliationService;
 
   [HttpPost]
-  public async Task<IActionResult> ConcilliationCheck(ConcilliationCheckDTO dto)
+  public IActionResult ConcilliationRequest(ConcilliationRequestDTO dto)
   {
     PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
-    ConcilliationOutputDTO outputDTO = await _concilliationService.ConcilliationCheck(bankData, dto);
+    _concilliationService.ConcilliationRequest(bankData, dto);
+    return Ok($"Request for concilliation in progress");
+  }
+
+  [HttpPost("check")]
+  public async Task<IActionResult> ConcilliationCheck(ConcilliationMessageServiceDTO dto)
+  {
+    PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
+    ConcilliationOutputDTO outputDTO = await _concilliationService.ConcilliationOutput(bankData, dto);
     return CreatedAtAction(nameof(ConcilliationCheck), null, new
     {
       DatabaseToFile = outputDTO.DatabaseToFile,

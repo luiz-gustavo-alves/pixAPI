@@ -1,4 +1,3 @@
-
 using System.Text.Json;
 using pixAPI.DTOs;
 using pixAPI.Exceptions;
@@ -8,18 +7,18 @@ using pixAPI.Repositories;
 
 namespace pixAPI.Services;
 
-public class ConcilliationService(PaymentRepository paymentRepository)
+public class ConcilliationService(PaymentRepository paymentRepository, MessageService messageService)
 {
   private readonly int PAYMENT_CHUNK = 1000000;
   private readonly PaymentRepository _paymentRepository = paymentRepository;
+  private readonly MessageService _messageService = messageService;
 
-  private async Task GenerateComparisonFile(string filePath, long bankId)
+  private async Task GenerateDBComparisonFile(DateTime date, string filePath, long bankId, int paymentsCounter)
   {
-    int paymentsCounter = _paymentRepository.GetAllTodayPaymentsByPSPCounter(bankId);
-    int currentChunk = 0;
-    while (currentChunk < paymentsCounter)
+    int skip = 0;
+    while (skip < paymentsCounter)
     {
-      List<Payments> paymentsByPSP = await _paymentRepository.GetTodayPaymentsByPSP(bankId, currentChunk);
+      List<Payments> paymentsByPSP = await _paymentRepository.GetPaymentsByPSPInDate(date, bankId, skip, PAYMENT_CHUNK);
       using TextWriter file = new StreamWriter(filePath, true);
       foreach (var payment in paymentsByPSP)
       {
@@ -31,11 +30,16 @@ public class ConcilliationService(PaymentRepository paymentRepository)
         string json = JsonSerializer.Serialize(content);
         file.WriteLine(json);
       }
-      currentChunk += PAYMENT_CHUNK;
+      skip += PAYMENT_CHUNK;
     }
   }
 
-  private async Task<ConcilliationOutputDTO> CheckFileToDatabaseAndPaymentStatus(string PSPfile)
+  private static bool HasToCheckFileToDatabase(int lineCount, int paymentsCounter)
+  {
+    return lineCount == paymentsCounter;
+  }
+
+  private async Task<ConcilliationOutputDTO> GenerateFileToDatabaseAndDifferentStatusOutput(string PSPfile)
   {
     List<ConcilliationFileContent> fileToDatabase = [];
     List<ConcilliationPaymentId> differentStatus = [];
@@ -68,13 +72,43 @@ public class ConcilliationService(PaymentRepository paymentRepository)
       FileToDatabase = fileToDatabase.ToArray(),
       DifferentStatus = differentStatus.ToArray()
     };
-
     return outputDTO;
   }
 
-  private static ConcilliationFileContent[] CheckDatabaseToFile(string DBfile, string PSPfile)
+  private static bool CheckDatabaseToFile(string PSPfile, ConcilliationFileContent dbContent)
   {
+    using StreamReader pspFileReader = new(PSPfile);
+    string? line;
+    while ((line = pspFileReader.ReadLine()) != null)
+    {
+      ConcilliationFileContent? pspContent = JsonSerializer.Deserialize<ConcilliationFileContent>(line);
+      if (pspContent is null)
+        break;
+
+      if (pspContent.Id.Equals(dbContent.Id))
+        return false;
+    }
+    return true;
+  }
+
+  public async Task<ConcilliationOutputDTO> ConcilliationOutput(
+    PaymentProvider? bankData,
+    ConcilliationMessageServiceDTO dto
+  )
+  {
+    string DBfile = $"./Services/tmp-{dto.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
+    if (File.Exists(DBfile))
+      throw new ConcilliationInProgressException("Requisição para concilliação já foi feita. Por favor aguarde.");
+
+    File.Open(DBfile, FileMode.Create).Close();
+
+    PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
+    int paymentsCounter = _paymentRepository.GetAllPaymentsByPSPCounterInDate(dto.Date, validBankData.Id);
+    await GenerateDBComparisonFile(dto.Date, DBfile, validBankData.Id, paymentsCounter);
+
+    int dbLineCount = 1;
     List<ConcilliationFileContent> databaseToFile = [];
+    ConcilliationOutputDTO outputDTO = new();
 
     using StreamReader dbFileReader = new(DBfile);
     string? dbLine;
@@ -84,46 +118,53 @@ public class ConcilliationService(PaymentRepository paymentRepository)
       if (dbContent is null)
         break;
 
-      bool PSPhasDbContent = false;
-      using StreamReader pspFileReader = new(PSPfile);
-      string? pspLine;
-      while ((pspLine = pspFileReader.ReadLine()) != null)
+      if (HasToCheckFileToDatabase(dbLineCount, paymentsCounter))
       {
-        ConcilliationFileContent? pspContent = JsonSerializer.Deserialize<ConcilliationFileContent>(pspLine);
-        if (pspContent is null)
-          break;
-        
-        if (pspContent.Id.Equals(dbContent.Id)) 
-        {
-          PSPhasDbContent = true;
-          break;
-        }
+        ConcilliationOutputDTO checkOutput = await GenerateFileToDatabaseAndDifferentStatusOutput(dto.PSPfile);
+        outputDTO.FileToDatabase = checkOutput.FileToDatabase;
+        outputDTO.DifferentStatus = checkOutput.DifferentStatus;
       }
 
-      if (!PSPhasDbContent)
+      bool PSPhasNoDbContent = CheckDatabaseToFile(dto.PSPfile, dbContent);
+      if (PSPhasNoDbContent)
         databaseToFile.Add(dbContent);
+
+      dbLineCount++;
     }
 
-    return databaseToFile.ToArray();
+    outputDTO.DatabaseToFile = databaseToFile.ToArray();
+
+    // Edge case: has content in PSPfile but no content in DBfile
+    if (outputDTO.FileToDatabase is null)
+    {
+      ConcilliationOutputDTO checkOutput = await GenerateFileToDatabaseAndDifferentStatusOutput(dto.PSPfile);
+      outputDTO.FileToDatabase = checkOutput.FileToDatabase;
+      outputDTO.DifferentStatus = checkOutput.DifferentStatus;
+    }
+
+    if (File.Exists(DBfile))
+      File.Delete(DBfile);
+
+    return outputDTO;
   }
 
-  public async Task<ConcilliationOutputDTO> ConcilliationCheck(PaymentProvider? bankData, ConcilliationCheckDTO dto)
+  public void ConcilliationRequest(PaymentProvider? bankData, ConcilliationRequestDTO dto)
   {
     PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
     if (!File.Exists(dto.File))
       throw new FileDoesNotExistException("Arquivo inválido ou não existente");
 
-    DateTime today = DateTime.Today;
-    string DBfile = $"./Services/tmp-{validBankData.Token}-{today.ToString("dd-MM-yyyy")}.json";
+    string DBfile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
     if (File.Exists(DBfile))
-      File.Delete(DBfile);
+      throw new ConcilliationInProgressException("Requisição para concilliação já foi feita. Por favor aguarde.");
 
-    else
-      File.Open(DBfile, FileMode.Create).Close();
-
-    await GenerateComparisonFile(DBfile, validBankData.Id);
-    ConcilliationOutputDTO outputDTO = await CheckFileToDatabaseAndPaymentStatus(dto.File);
-    outputDTO.DatabaseToFile = CheckDatabaseToFile(DBfile, dto.File);
-    return outputDTO;
+    ConcilliationMessageServiceDTO messageDTO = new()
+    {
+      Token = validBankData.Token,
+      Date = dto.Date,
+      PSPfile = dto.File,
+      Postback = dto.Postback,
+    };
+    _messageService.SendConcilliationMessage(messageDTO);
   }
 }

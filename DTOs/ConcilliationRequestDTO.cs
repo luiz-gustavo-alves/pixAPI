@@ -4,11 +4,29 @@ using System.Runtime.Serialization;
 namespace pixAPI.DTOs;
 
 [DataContract]
-public class ConcilliationCheckDTO
+public class ConcilliationRequestDTO
 {
+  [Required(ErrorMessage = "{0} é obrigatório.")]
+  [DisplayFormat(DataFormatString = "{yyyy-MM-dd}")]
+  [DataMember(Name = "date")]
+  public required DateTime Date { get; set; }
+
   [Required(ErrorMessage = "{0} é obrigatório.")]
   [DataMember(Name = "file")]
   public string File { get; set; } = null!;
+
+  [Required(ErrorMessage = "{0} é obrigatório.")]
+  [DataMember(Name = "postback")]
+  public string Postback { get; set; } = null!;
+}
+
+[DataContract]
+public class ConcilliationMessageServiceDTO
+{
+  public required string Token { get; set; } = null!;
+  public required DateTime Date { get; set; }
+  public required string PSPfile { get; set; } = null!;
+  public required string Postback { get; set; } = null!;
 }
 
 [DataContract]

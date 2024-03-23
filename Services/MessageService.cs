@@ -58,4 +58,36 @@ public class MessageService(IOptions<QueueConfig> queueConfig)
       body: body
     );
   }
+
+  public void SendConcilliationMessage(ConcilliationMessageServiceDTO messageDTO)
+  {
+    ConnectionFactory factory = new()
+    {
+      HostName = _hostName
+    };
+
+    IConnection connection = factory.CreateConnection();
+    using IModel channel = connection.CreateModel();
+
+    channel.QueueDeclare(
+      queue: "concilliation",
+      durable: true,
+      exclusive: false,
+      autoDelete: false,
+      arguments: null
+    );
+
+    string json = JsonSerializer.Serialize(messageDTO);
+    var body = Encoding.UTF8.GetBytes(json);
+
+    IBasicProperties properties = channel.CreateBasicProperties();
+    properties.Persistent = true;
+
+    channel.BasicPublish(
+      exchange: string.Empty,
+      routingKey: "concilliation",
+      basicProperties: properties,
+      body: body
+    );
+  }
 }
