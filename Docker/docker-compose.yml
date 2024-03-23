@@ -45,6 +45,17 @@ services:
     networks:
       - pix-api-network
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.12.12-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq-volume:/var/lib/rabbitmq
+    networks:
+      - pix-api-network
+
   postgres:
     container_name: postgres
     image: postgres
@@ -108,4 +119,5 @@ networks:
 
 volumes:
   grafana:
+  rabbitmq-volume:
   postgres:
