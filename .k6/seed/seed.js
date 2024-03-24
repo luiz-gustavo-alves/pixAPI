@@ -219,10 +219,10 @@ async function run() {
   if (DELETE_DATA) {
     console.log("Deleting data...")
     await knex("Payments").del();
-    //await knex("PixKey").del();
-    //await knex("PaymentProviderAccount").del();
-    //await knex("PaymentProvider").del();
-    //await knex("User").del();
+    await knex("PixKey").del();
+    await knex("PaymentProviderAccount").del();
+    await knex("PaymentProvider").del();
+    await knex("User").del();
   }
 
   const start = new Date();
