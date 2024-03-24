@@ -1,139 +1,188 @@
 # Pix API
 
-O projeto envolve o pagamento e criação/processamento de chaves Pix para as intituições financeiras credenciadas pelo Banco Central (chamado de Provedor de Serviço de Pagamento - PSP).
+"Pix API" is a REST API that allows Payment Providers (PSPs) to create/retrieve "Pix" keys, process payments and check differences to payments file logs from PSPs and API data records.
+<br>
+<br>
+This project was built in C# using ASP.NET Core (version 8.0.2) and it was developed following scalability and performance concepts.
 
-Lista de ferramentas e tecnologias utilizadas no desenvolvimento do projeto:
-- C# e .NET;
-- Entity Framework (EF) como ORM;
-- Postgres como banco de dados relacional;
-- Teste de carga utilizando Grafana k6;
-- Monitoramento da aplicação/banco de dados com Prometheus e Grafana;
+## Tools and Technologies
+- C#;
+- ASP.NET Core (version 8.0.2);
+- Entity Framework;
+- Postgres;
+- k6 (Load testing);
+- Prometheus;
+- Grafana;
 - Docker;
-- Sistema de filas com rabbitMQ.
+- RabbitMQ;
+- Swagger.
 
-## Funcionalidades
-- **Criação de chave Pix**: Cria uma nova chave Pix para um usuário associado a uma conta numa PSP.
-- **Listagem de chave Pix**: Recupera as informações de uma determinada chave Pix.
-- **Pagamento**: Processa um pagamento de acordo com informações de origem do usuário e uma chave Pix de destino.
+## Features
+- **Pix Key Creation**: Creates new "Pix" key for user account related to PSP.
+- **Pix key Retrieval**: Retrieves "Pix" key information.
+- **Payments**: Process payment based on user origin information and "Pix" key destination.
+- **Concilliation**: Check differences to payments file logs from PSPs and API data records.
 
-## Instruções para Executar o Projeto
-- Clone este repositório com o comando `git clone https://github.com/luiz-gustavo-alves/pixAPI.git`;
-- Utilize o comando `dotnet watch` para subir a aplicação.
+## How to Install and Run the Project
+Clone this repository: `git clone https://github.com/luiz-gustavo-alves/pixAPI.git`
+<br>
+Access **Docker** folder and run Docker environment:
+```bash
+cd Docker
+docker compose up -d
+```
 
-## Intruções para Subir os Containers da Aplicação
-- Acesse a pasta **Docker** utilizando o comando `cd Docker`;
-- Com Docker iniciado, utilize o comando `docker compose up -d` para iniciar os containers da aplicação .NET, o banco de dados Postgres e ferramentas de monitoramento Prometheus e Grafana.
+API will be running on [http://localhost:5000](http://localhost:5000/Health)
+<br>
+Grafana will be running on [http://localhost:3000](http://localhost:3000)
+<br>
+RabbitMQ Management will be running on [http://localhost:15672](http://localhost:15672)
 
-## Instruções para Executar os Testes de Carga
-- Com os containers da pasta **Docker** ativos acesse a pasta **.k6** utilizando o comando `cd .k6`;
-   Utilize o comando `npm run pretest` para gerar a _seed_ no banco de dados e _payload_ das requisições para o testes de carga;
-- Lista de testes implementados:
-  - **npm run test:health**: Teste de carga para o Endpoint **GET /health**;
-  - **npm run test:getPixKey**: Teste de carga para o Endpoint **GET /keys/:type/:value**;
-  - **npm run test:createPixKey**: Teste de carga para o Endpoint **POST /keys**;
-  - **npm run test:makePayment**: Teste de carga para o Endpoint **POST /payments** (Necessita que a aplicação PSP mock e Consumer estejam funcionando).
+## How to Run Load Tests
+Access **.k6** folder:
+```bash
+cd ./k6
+```
 
-## Documentação das rotas da API
+Inside of **.k6** folder, run `npm run pretest` script to generate new _seed_ (data records) and _payload_ (POST requests).
+<br>
+This script should create JSON files to run load tests:
 
-### Swagger
-A documentação das rotas da API foi feita utilizando Swagger.
+![image](https://github.com/luiz-gustavo-alves/pixAPI/assets/114351018/f67249cb-0963-404f-ad6f-b69015143c4f)
 
-Para acessar o link da documentação via Swagger é necessário subir a aplicação utilizando o comando `dotnet watch` e acessar este [link](http://localhost:5180/swagger).
+
+Inside of **.k6** folder, you can run those following scripts for loading tests:
+  - **npm run test:health**: Load test for **GET /health** endpoint;
+  - **npm run test:getPixKey**: Load test for **GET /keys/:type/:value** endpoint;
+  - **npm run test:createPixKey**: Load test for **POST /keys** endpoint;
+  - **npm run test:makePayment**: Load test for **POST /payments** endpoint.
+
+## Swagger
+Swagger is an open-source tool that allows to visualize and interact with the API’s resources.
+<br>
+Using Docker environment, Swagger will be running on [http://localhost:5000/swagger](http://localhost:5000/swagger)
 
 <hr />
 
-### Descrição das Rotas
+### Endpoints Description
 
-### ![](https://place-hold.it/80x20/26baec/ffffff?text=GET&fontsize=16) /health
-Retorna "I'm alive" para verificar se a aplicação está em funcionamento.
+### ![](https://place-hold.it/80x20/26baec/ffffff?text=GET&fontsize=16) /Health
+Returns "I'm alive" - useful to check if API is working.
 
 ### ![](https://place-hold.it/80x20/26ec48/ffffff?text=POST&fontsize=16) /keys
-Cria uma nova chave Pix para um usuário associado a uma conta numa PSP.
-- A chave Pix pode ser do tipo: `CPF`, `Email`, `Phone` ou `Random`.
-    - Um único usuário não deve ter duas chaves do mesmo tipo quando for CPF;
-    - A chave do tipo `CPF` tem que ter o mesmo valor do `CPF` do usuário.
-    - A chave deve ser necessariamente única, independente da PSP.
+Creates new "Pix" key for user account related to PSP.
+<br>
+Currently available "Pix" types: `CPF`, `Email`, `Phone`, `Random`.
 
-**Rota autentificada - Header esperado:**
+Business Logic:
+- User can't have more than two "Pix" keys with same CPF type;
+- CPF type should have the same CPF value from user;
+- Key should be always unique, regardless of PSPs.
+
+**Auth Endpoint - Expected Header:**
 ```JSON
 {
-  "Authorization": "Bearer tokenPSP"
+  "Authorization": "Bearer PSPtoken"
 }
 ```
-**Formato esperado do payload (body) da requisição:**
+**Expected Payload Request:**
 ```JSON
  {
   "key": {
-    "value": "Valor da chave Pix",
-    "type": "CPF, Email, Phone ou Random"
+    "value": "Pix key value",
+    "type": "CPF, Email, Phone or Random"
   },
   "user": {
-    "cpf": "Número do CPF"
+    "cpf": "CPF number"
   },
   "account": {
-    "number": "Número da conta bancária",
-    "agency": "Número da agência bancária",
+    "number": "User bank account number",
+    "agency": "User bank agency number",
   }
 }
 ```
 
 ### ![](https://place-hold.it/80x20/26baec/ffffff?text=GET&fontsize=16) /keys/:type/:value
-Recupera as informações de uma determinada chave Pix através do tipo (type) e valor (value) da chave.
+Retrieves "Pix" key information based on key type and value.
 
-**Rota autentificada - Header esperado:**
+**Auth Endpoint - Expected Header:**
 ```JSON
 {
-  "Authorization": "Bearer tokenPSP"
+  "Authorization": "Bearer PSPtoken"
 }
 ```
-**Formato esperado da resposta da requisição:**
+**Expected Request Response:**
 ```JSON
  {
   "key": {
-    "value": "Valor da chave Pix",
-    "type": "CPF, Email, Phone ou Random"
+    "value": "Pix key value",
+    "type": "CPF, Email, Phone or Random"
   },
   "user": {
-    "name": "Nome do usuário",
-    "maskedCpf": "Número do CPF - somente os três primeiros e dois últimos dígitos"
+    "name": "User name",
+    "maskedCpf": "CPF number - three first and last two digits only"
   },
   "account": {
-    "number": "Número da conta bancária",
-    "agency": "Número da agência bancária",
-    "bankId": "ID da PSP",
-    "bankName": "Nome da PSP"
+    "number": "User bank account number",
+    "agency": "User bank agency number",
+    "bankId": "PSP Id",
+    "bankName": "PSP name"
   }
 }
 ```
 
 ### ![](https://place-hold.it/80x20/26ec48/ffffff?text=POST&fontsize=16) /payments
-Processa um pagamento de acordo com informações de origem do usuário e uma chave Pix de destino.
+Process payment based on user origin information and "Pix" key destination.
+<br>
+Uses RabbitMQ queues to send payments messages to "pixAPI-Payments-Consumer".
 
-**Rota autentificada - Header esperado:**
+Business Logic:
+- User cant make the same payment in a period of time lesser than 30 seconds.
+
+**Auth Endpoint - Expected Header:**
 ```JSON
 {
-  "Authorization": "Bearer tokenPSP"
+  "Authorization": "Bearer PSPtoken"
 }
 ```
-**Formato esperado do payload (body) da requisição:**
+**Expected Payload Request:**
 ```JSON
  {
    "origin": {
       "user": {
-        "cpf": "Número do CPF"
+        "cpf": "CPF number"
       },
       "account": {
-         "number": "Número da conta bancária",
-         "agency": "Número da agência bancária",
+         "number": "User bank account number",
+         "agency": "User bank agency number",
       },
    },
    "desinty": {
       "key": {
-         "value": "Valor da chave Pix",
-         "type": "CPF, Email, Phone ou Random"
+         "value": "Pix key value",
+         "type": "CPF, Email, Phone or Random"
       },
    },
-   "amount": "Quantidade de dinheiro a ser enviado",
-   "description": "Descrição do pagamento (opcional)"
+   "amount": "Payment amount",
+   "description": "Payment description (optional)"
 }
 ```
+
+### ![](https://place-hold.it/80x20/26ec48/ffffff?text=POST&fontsize=16) /concilliation
+Check differences to payments file logs from PSPs and API data records.
+<br>
+Uses RabbitMQ queues to send concilliation messages to "pixAPI-Concilliation-Consumer".
+**Auth Endpoint - Expected Header:**
+```JSON
+{
+  "Authorization": "Bearer PSPtoken"
+}
+```
+**Expected Payload Request:**
+```JSON
+{
+   "date": "Date that API data records will use (yyyy-MM-dd format)",
+   "file": "PSP payment file log",
+   "postback": "Weebhook to notify PSP after concilliation ended"
+}
+````
