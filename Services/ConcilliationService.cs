@@ -13,40 +13,18 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
   private readonly PaymentRepository _paymentRepository = paymentRepository;
   private readonly MessageService _messageService = messageService;
 
-  private async Task GenerateDBComparisonFile(DateTime date, string filePath, long bankId)
-  {
-    int paymentsCounter = _paymentRepository.GetAllPaymentsByPSPCounterInDate(date, bankId);
-    int skip = 0;
-    while (skip < paymentsCounter)
-    {
-      List<Payments> paymentsByPSP = await _paymentRepository.GetPaymentsByPSPInDate(date, bankId, skip, DB_CHUNK);
-      using TextWriter file = new StreamWriter(filePath, true);
-      foreach (var payment in paymentsByPSP)
-      {
-        ConcilliationFileContent content = new()
-        {
-          Id = payment.Id,
-          Status = EnumHelper.MatchPaymentStatusToString(payment.Status)
-        };
-        string json = JsonSerializer.Serialize(content);
-        file.WriteLine(json);
-      }
-      skip += DB_CHUNK;
-    }
-  }
-
   private static List<ConcilliationFileContent> CheckDatabaseToFile(string PSPfile, Dictionary<long, string> dbDict)
   {
     List<ConcilliationFileContent> results = [];
-    using StreamReader pspFileReader = new(PSPfile);
-    string? line;
-    while ((line = pspFileReader.ReadLine()) != null)
+    using StreamReader fileReader = new(PSPfile);
+    string? PSPline;
+    while ((PSPline = fileReader.ReadLine()) != null)
     {
-      ConcilliationFileContent? pspContent = JsonSerializer.Deserialize<ConcilliationFileContent>(line);
-      if (pspContent is null)
+      ConcilliationFileContent? PSPcontent = JsonSerializer.Deserialize<ConcilliationFileContent>(PSPline);
+      if (PSPcontent is null)
         break;
 
-      dbDict.Remove(pspContent.Id);
+      dbDict.Remove(PSPcontent.Id);
     }
 
     foreach (var item in dbDict)
@@ -79,53 +57,35 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
       fileToDatabase.Add(new() { Id = item.Key, Status = item.Value });
     }
 
-    ConcilliationListOutput result = new()
-    {
-      FileToDatabase = fileToDatabase,
-      DifferentStatus = differentStatus
-    };
+    ConcilliationListOutput result = new() { FileToDatabase = fileToDatabase, DifferentStatus = differentStatus };
     return result;
   }
 
-  private ConcilliationListOutput GetDatabaseToFileConcilliation(string DBfile, ConcilliationMessageServiceDTO dto)
+  private async Task<ConcilliationListOutput> GetDatabaseToFileConcilliation(long bankId, ConcilliationMessageServiceDTO dto)
   {
     List<ConcilliationFileContent> databaseToFile = [];
     Dictionary<long, string> dbDict = new Dictionary<long, string>();
-    int dbLineCount = 0;
+    int paymentsCounter = _paymentRepository.GetAllPaymentsByPSPCounterInDate(dto.Date, bankId);
+    int skip = 0;
 
-    using StreamReader dbFileReader = new(DBfile);
-    string? dbLine;
-    while (true)
+    while (skip <= paymentsCounter)
     {
-      dbLine = dbFileReader.ReadLine();
-      if (dbLine is null)
+      List<Payments> dbPayments = await _paymentRepository.GetPaymentsByPSPInDate(dto.Date, bankId, skip, DB_CHUNK);
+      foreach (var payment in dbPayments)
       {
-        List<ConcilliationFileContent> results = CheckDatabaseToFile(dto.PSPfile, dbDict);
-        databaseToFile.AddRange(results);
-        break;
+        dbDict.Add(payment.Id, EnumHelper.MatchPaymentStatusToString(payment.Status));
       }
 
-      ConcilliationFileContent? dbContent = JsonSerializer.Deserialize<ConcilliationFileContent>(dbLine);
-      if (dbContent is null)
-        break;
-
-      dbDict.Add(dbContent.Id, dbContent.Status);
-      if (dbLineCount < DB_CHUNK)
-      {
-        dbLineCount++;
-      }
-      else
-      {
-        List<ConcilliationFileContent> results = CheckDatabaseToFile(dto.PSPfile, dbDict);
-        databaseToFile.AddRange(results);
-        dbLineCount = 0;
-        dbDict.Clear();
-      }
+      List<ConcilliationFileContent> results = CheckDatabaseToFile(dto.PSPfile, dbDict);
+      databaseToFile.AddRange(results);
+      dbDict.Clear();
+      skip += DB_CHUNK;
     }
 
     ConcilliationListOutput result = new() { DatabaseToFile = databaseToFile };
     return result;
   }
+
 
   private async Task<ConcilliationListOutput> GetFileToDatabaseAndDifferentStatusConcilliation(
     ConcilliationMessageServiceDTO dto
@@ -168,25 +128,22 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
       }
     }
 
-    ConcilliationListOutput result = new()
-    {
-      FileToDatabase = fileToDatabase,
-      DifferentStatus = differentStatus,
-    };
+    ConcilliationListOutput result = new() { FileToDatabase = fileToDatabase, DifferentStatus = differentStatus };
     return result;
   }
 
   public async Task<ConcilliationOutputDTO> ConcilliationOutput(PaymentProvider? bankData, ConcilliationMessageServiceDTO dto)
   {
     PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
-    string DBfile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
-    if (File.Exists(DBfile))
+    string tempFile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
+    if (File.Exists(tempFile))
       throw new ConcilliationInProgressException("Requisição para concilliação já foi feita. Por favor aguarde.");
 
-    File.Open(DBfile, FileMode.Create).Close();
-    await GenerateDBComparisonFile(dto.Date, DBfile, validBankData.Id);
+    File.Open(tempFile, FileMode.Create).Close();
+    /* Make request to read a file from a URL of external site and generate tmp file (PSP file) */
+    // await GenerateTempFile(dto.Date, tempFile, validBankData.Id);
 
-    ConcilliationListOutput dbConcilliation = GetDatabaseToFileConcilliation(DBfile, dto);
+    ConcilliationListOutput dbConcilliation = await GetDatabaseToFileConcilliation(validBankData.Id, dto);
     ConcilliationListOutput pspConcilliation = await GetFileToDatabaseAndDifferentStatusConcilliation(dto);
     ConcilliationOutputDTO outputDTO = new()
     {
@@ -195,8 +152,8 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
       DifferentStatus = pspConcilliation.DifferentStatus.ToArray(),
     };
 
-    if (File.Exists(DBfile))
-      File.Delete(DBfile);
+    if (File.Exists(tempFile))
+      File.Delete(tempFile);
 
     return outputDTO;
   }
@@ -207,8 +164,8 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
     if (!File.Exists(dto.File))
       throw new FileDoesNotExistException("Arquivo inválido ou não existente");
 
-    string DBfile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
-    if (File.Exists(DBfile))
+    string tempFile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
+    if (File.Exists(tempFile))
       throw new ConcilliationInProgressException("Requisição para concilliação já foi feita. Por favor aguarde.");
 
     ConcilliationMessageServiceDTO messageDTO = new()
@@ -218,6 +175,7 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
       PSPfile = dto.File,
       Postback = dto.Postback,
     };
+
     try
     {
       _messageService.SendConcilliationMessage(messageDTO);
@@ -231,8 +189,8 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
   public void ConcilliationFinish(PaymentProvider? bankData, ConcilliationMessageServiceDTO dto)
   {
     PaymentProvider validBankData = ValidationHelper.ValidateBankDataOrFail(bankData);
-    string DBfile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
-    if (File.Exists(DBfile))
-      File.Delete(DBfile);
+    string tempFile = $"./Services/tmp-{validBankData.Token}-{dto.Date.ToString("dd-MM-yyyy")}.json";
+    if (File.Exists(tempFile))
+      File.Delete(tempFile);
   }
 }
