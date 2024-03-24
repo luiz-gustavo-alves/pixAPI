@@ -2,8 +2,16 @@ import http from "k6/http";
 import { SharedArray } from "k6/data";
 
 export const options = {
-  vus: 10,
-  duration: "20s",
+  scenarios: {
+    spike_usage: {
+      executor: "constant-arrival-rate",
+      duration: "60s",
+      preAllocatedVUs: 10,
+      maxVUs: 10,
+      rate: 50,
+      timeUnit: "1s",
+    },
+  },
 };
 
 const user = new SharedArray("Users", function () {

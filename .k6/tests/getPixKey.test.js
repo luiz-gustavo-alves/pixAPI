@@ -2,8 +2,16 @@ import http from "k6/http";
 import { SharedArray } from "k6/data";
 
 export const options = {
-  vus: 30,
-  duration: "20s",
+  scenarios: {
+    spike_usage: {
+      executor: "constant-arrival-rate",
+      duration: "60s",
+      preAllocatedVUs: 100,
+      maxVUs: 100,
+      rate: 100,
+      timeUnit: "1s",
+    },
+  },
 };
 
 const pixKeys = new SharedArray("PixKeys", function () {
