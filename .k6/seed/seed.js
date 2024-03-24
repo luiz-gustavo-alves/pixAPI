@@ -14,6 +14,7 @@ const USERS = 500_000;
 const PAYMENT_PROVIDERS = 500_000;
 const PAYMENT_PROVIDERS_ACCOUNTS = 500_000;
 const PIX_KEYS = 500_000;
+const PAYMENTS = 1_000_000;
 
 const DELETE_DATA = true;
 const GENERATE_VALID_ENTRIES = true;
@@ -21,6 +22,7 @@ const GENERATE_USERS = true;
 const GENERATE_PAYMENT_PROVIDERS = true;
 const GENERATE_PAYMENT_PROVIDER_ACCOUNTS = true;
 const GENERATE_PIX_KEYS = true;
+const GENERATE_PAYMENTS = true;
 
 function getDataFromPixKeyTypeEnum(value) {
   const typeToEnum = {
@@ -30,6 +32,14 @@ function getDataFromPixKeyTypeEnum(value) {
     "Random": 3,
   };
   return typeToEnum[value];
+}
+
+function getDataFromPaymentsStatusEnum(status) {
+  const statusToEnum = {
+    "SUCCESS": 1,
+    "FAILED": 2,
+  }
+  return statusToEnum[status];
 }
 
 async function generateValidEntries() {
@@ -157,9 +167,45 @@ async function generatePixKeys() {
   return { pixKeys, pixKeyJSON };
 }
 
+async function generatePayments() {
+  console.log(`Generating ${PAYMENTS} payments...`);
+  const VALID_ACCOUNT = JSON.parse(fs.readFileSync("./seed/valid_account.json"));
+  const accountId = await knex.select('Id').from("PaymentProviderAccount").where('UserId', VALID_ACCOUNT[0].UserId);
+  const VALID_PIX_KEY = JSON.parse(fs.readFileSync("./seed/valid_pixKey.json"));
+  const pixKeyId = await knex.select('Id').from("PixKey").where('PaymentProviderAccountId', VALID_PIX_KEY[0].PaymentProviderAccountId);
+  const paymentsStatus = ["SUCCESS", "FAILED"];
+  let payments = [];
+  for (let i = 0; i < PAYMENTS; i++) {
+    payments.push({
+      Status: getDataFromPaymentsStatusEnum(paymentsStatus[i % 2]),
+      PaymentProviderAccountId: accountId[0].Id,
+      PixKeyId: pixKeyId[0].Id,
+      Amount: faker.number.int({ min: 1, max: 10000}),
+    });
+  }
+
+  await populateDataInDatabase(payments, "Payments");
+  payments = await knex.select('Id', 'Status').from("Payments").where('PixKeyId', pixKeyId[0].Id);
+  const paymentsNDjson = [];
+  for (let i = 0; i < PAYMENTS; i++) {
+    paymentsNDjson.push({
+      Id: Number(payments[i].Id),
+      Status: paymentsStatus[i % 2],
+    });
+  }
+  return paymentsNDjson;
+}
+
 async function populateDataInDatabase(data, tableName) {
   console.log("Storing on DB...");
   await knex.batchInsert(tableName, data);
+}
+
+function generateNDjson(filepath, data) {
+  if (fs.existsSync(filepath)) {
+    fs.unlinkSync(filepath);
+  }
+  fs.writeFileSync(filepath, data.map(JSON.stringify).join('\n'));
 }
 
 function generateJson(filepath, data) {
@@ -173,10 +219,10 @@ async function run() {
   if (DELETE_DATA) {
     console.log("Deleting data...")
     await knex("Payments").del();
-    await knex("PixKey").del();
-    await knex("PaymentProviderAccount").del();
-    await knex("PaymentProvider").del();
-    await knex("User").del();
+    //await knex("PixKey").del();
+    //await knex("PaymentProviderAccount").del();
+    //await knex("PaymentProvider").del();
+    //await knex("User").del();
   }
 
   const start = new Date();
@@ -207,6 +253,11 @@ async function run() {
     const { pixKeys, pixKeyJSON } = await generatePixKeys();
     await populateDataInDatabase(pixKeys, "PixKey");
     generateJson("./seed/existing_pixKeys.json", pixKeyJSON);
+  }
+
+  if (GENERATE_PAYMENTS) {
+    const paymentsNDjson = await generatePayments();
+    generateNDjson("./seed/existing_payments.json", paymentsNDjson);
   }
 
   console.log("Closing DB connection...");
