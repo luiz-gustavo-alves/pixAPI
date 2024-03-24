@@ -31,4 +31,12 @@ public class ConcilliationController(ConcilliationService concilliationService) 
       DifferentStatus = outputDTO.DifferentStatus,
     });
   }
+
+  [HttpPost("finish")]
+  public IActionResult ConcilliationFinish(ConcilliationMessageServiceDTO dto)
+  {
+    PaymentProvider? bankData = (PaymentProvider?)HttpContext.Items["bankData"];
+    _concilliationService.ConcilliationFinish(bankData, dto);
+    return NoContent();
+  }
 }

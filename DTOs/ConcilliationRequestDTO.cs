@@ -42,6 +42,18 @@ public class ConcilliationOutputDTO
   public ConcilliationPaymentId[] DifferentStatus { get; set; } = null!;
 }
 
+public class ConcilliationListOutput
+{
+  [DataMember(Name = "databaseToFile")]
+  public List<ConcilliationFileContent> DatabaseToFile { get; set; } = null!;
+
+  [DataMember(Name = "fileToDatabase")]
+  public List<ConcilliationFileContent> FileToDatabase { get; set; } = null!;
+
+  [DataMember(Name = "differentStatus")]
+  public List<ConcilliationPaymentId> DifferentStatus { get; set; } = null!;
+}
+
 public class ConcilliationFileContent
 {
   [DataMember(Name = "id")]

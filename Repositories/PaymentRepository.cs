@@ -15,9 +15,10 @@ public class PaymentRepository(AppDBContext context)
     return payment;
   }
 
-  public async Task<Payments?> GetPaymentById(long paymentId) 
+  public async Task<List<Payments>> GetPaymentByDictOfIds(Dictionary<long, string> pspDict) 
   {
-    return await _context.Payments.FirstOrDefaultAsync(p => p.Id.Equals(paymentId));
+    List<long> ids = pspDict.Keys.ToList();
+    return await _context.Payments.Where(p => ids.Contains(p.Id)).ToListAsync();
   }
 
   public int GetAllPaymentsByPSPCounterInDate(DateTime date, long bankId)
