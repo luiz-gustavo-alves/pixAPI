@@ -6,9 +6,9 @@ export const options = {
     spike_usage: {
       executor: "constant-arrival-rate",
       duration: "60s",
-      preAllocatedVUs: 100,
-      maxVUs: 100,
-      rate: 100,
+      preAllocatedVUs: 30,
+      maxVUs: 30,
+      rate: 50,
       timeUnit: "1s",
     },
   },
