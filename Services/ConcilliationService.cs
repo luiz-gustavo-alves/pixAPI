@@ -22,7 +22,7 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
     List<ConcilliationFileContent> results = [];
     using StreamReader fileReader = new(PSPfile);
     string? PSPline;
-    while (dictCounter == 0)
+    while (dictCounter > 0)
     {
       PSPline = fileReader.ReadLine();
       if (PSPline is null)
