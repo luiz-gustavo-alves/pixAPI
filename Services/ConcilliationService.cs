@@ -13,18 +13,30 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
   private readonly PaymentRepository _paymentRepository = paymentRepository;
   private readonly MessageService _messageService = messageService;
 
-  private static List<ConcilliationFileContent> CheckDatabaseToFile(string PSPfile, Dictionary<long, string> dbDict)
+  private static List<ConcilliationFileContent> CheckDatabaseToFile(
+    string PSPfile,
+    Dictionary<long, string> dbDict, 
+    int dictCounter
+  )
   {
     List<ConcilliationFileContent> results = [];
     using StreamReader fileReader = new(PSPfile);
     string? PSPline;
-    while ((PSPline = fileReader.ReadLine()) != null)
+    while (dictCounter == 0)
     {
+      PSPline = fileReader.ReadLine();
+      if (PSPline is null)
+        break;
+
       ConcilliationFileContent? PSPcontent = JsonSerializer.Deserialize<ConcilliationFileContent>(PSPline);
       if (PSPcontent is null)
         break;
 
-      dbDict.Remove(PSPcontent.Id);
+      if (dbDict.ContainsKey(PSPcontent.Id)) 
+      {
+        dbDict.Remove(PSPcontent.Id);
+        dictCounter--;
+      }
     }
 
     foreach (var item in dbDict)
@@ -76,7 +88,7 @@ public class ConcilliationService(PaymentRepository paymentRepository, MessageSe
         dbDict.Add(payment.Id, EnumHelper.MatchPaymentStatusToString(payment.Status));
       }
 
-      List<ConcilliationFileContent> results = CheckDatabaseToFile(dto.PSPfile, dbDict);
+      List<ConcilliationFileContent> results = CheckDatabaseToFile(dto.PSPfile, dbDict, dbPayments.Count);
       databaseToFile.AddRange(results);
       dbDict.Clear();
       skip += DB_CHUNK;
