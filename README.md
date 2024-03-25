@@ -60,7 +60,7 @@ Inside of **.k6** folder, you can run those following scripts for loading tests:
 ## Swagger
 Swagger is an open-source tool that allows to visualize and interact with the API’s resources.
 <br>
-Using Docker environment, Swagger will be running on [http://localhost:5000/swagger](http://localhost:5000/swagger)
+Using local environment: `dotnet watch`, Swagger will be running on [http://localhost:5180/swagger](http://localhost:5180/swagger)
 
 <hr />
 
@@ -172,6 +172,7 @@ Business Logic:
 Check differences to payments file logs from PSPs and API data records.
 <br>
 Uses RabbitMQ queues to send concilliation messages to "pixAPI-Concilliation-Consumer".
+
 **Auth Endpoint - Expected Header:**
 ```JSON
 {
