@@ -4,6 +4,7 @@ RUN apk add --no-cache icu-libs icu-data-full
 EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV ASPNETCORE_ENVIRONMENT=Development
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
