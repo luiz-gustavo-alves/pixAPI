@@ -60,7 +60,7 @@ Inside of **.k6** folder, you can run those following scripts for loading tests:
 ## Swagger
 Swagger is an open-source tool that allows to visualize and interact with the API’s resources.
 <br>
-Using local environment: `dotnet watch`, Swagger will be running on [http://localhost:5180/swagger](http://localhost:5180/swagger)
+With active docker containers, Swagger will be running on [http://localhost:5000/swagger](http://localhost:5000/swagger)
 
 <hr />
 
@@ -187,3 +187,11 @@ Uses RabbitMQ queues to send concilliation messages to "pixAPI-Concilliation-Con
    "postback": "Weebhook to notify PSP after concilliation ended"
 }
 ````
+
+## Links
+
+| Description | URL |
+| --- | --- |
+| PSP Mock | https://github.com/luiz-gustavo-alves/pixAPI-PSP-Mock
+| Payment Consumer | https://github.com/luiz-gustavo-alves/pixAPI-Payments-Consumer
+| Concilliation Consumer | https://github.com/luiz-gustavo-alves/pixAPI-Concilliation-Consumer
